@@ -15,21 +15,11 @@
 
 using NUnit.Framework;
 
-namespace QuantConnect.TemplateBrokerage.Tests
+namespace QuantConnect.FTXBrokerage.Tests
 {
     [TestFixture, Ignore("Not implemented")]
-    public class TemplateBrokerageSymbolMapperTests
+    public class FTXBrokerageAdditionalTests
     {
-        [Test]
-        public void ReturnsCorrectLeanSymbol()
-        {
 
-        }
-
-        [Test]
-        public void ReturnsCorrectBrokerageSymbol()
-        {
-
-        }
     }
 }

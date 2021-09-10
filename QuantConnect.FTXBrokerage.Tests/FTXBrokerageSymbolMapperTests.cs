@@ -13,13 +13,22 @@
  * limitations under the License.
 */
 
-namespace QuantConnect.TemplateBrokerage.ToolBox
+using NUnit.Framework;
+
+namespace QuantConnect.FTXBrokerage.Tests
 {
-    static class Program
+    [TestFixture, Ignore("Not implemented")]
+    public class FTXBrokerageSymbolMapperTests
     {
-        static void Main(string[] args)
+        [Test]
+        public void ReturnsCorrectLeanSymbol()
         {
-            var downloader = new TemplateBrokerageDownloader();
+
+        }
+
+        [Test]
+        public void ReturnsCorrectBrokerageSymbol()
+        {
 
         }
     }

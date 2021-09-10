@@ -7,10 +7,10 @@
         <IsPackable>false</IsPackable>
         <Copyright>Copyright ©  2021</Copyright>
         <OutputPath>bin\$(Configuration)\</OutputPath>
-        <Product>QuantConnect.TemplateBrokerage.ToolBox</Product>
-        <AssemblyName>QuantConnect.TemplateBrokerage.ToolBox</AssemblyName>
-        <RootNamespace>QuantConnect.TemplateBrokerage.ToolBox</RootNamespace>
-        <AssemblyTitle>QuantConnect.TemplateBrokerage.ToolBox</AssemblyTitle>
+        <Product>QuantConnect.FTXBrokerage.ToolBox</Product>
+        <AssemblyName>QuantConnect.FTXBrokerage.ToolBox</AssemblyName>
+        <RootNamespace>QuantConnect.FTXBrokerage.ToolBox</RootNamespace>
+        <AssemblyTitle>QuantConnect.FTXBrokerage.ToolBox</AssemblyTitle>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     </PropertyGroup>
 

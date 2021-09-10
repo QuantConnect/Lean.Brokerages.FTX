@@ -13,13 +13,14 @@
  * limitations under the License.
 */
 
-using NUnit.Framework;
-
-namespace QuantConnect.TemplateBrokerage.Tests
+namespace QuantConnect.FTXBrokerage.ToolBox
 {
-    [TestFixture, Ignore("Not implemented")]
-    public class TemplateBrokerageAdditionalTests
+    static class Program
     {
+        static void Main(string[] args)
+        {
+            var downloader = new FTXBrokerageDownloader();
 
+        }
     }
 }

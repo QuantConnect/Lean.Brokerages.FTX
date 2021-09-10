@@ -22,14 +22,22 @@ using QuantConnect.Interfaces;
 using QuantConnect.Securities;
 using QuantConnect.Brokerages;
 using System.Collections.Generic;
+using QuantConnect.Util;
+using RestSharp;
 
-namespace QuantConnect.TemplateBrokerage
+namespace QuantConnect.FTXBrokerage
 {
-    [BrokerageFactory(typeof(TemplateBrokerageFactory))]
-    public class TemplateBrokerage : Brokerage, IDataQueueHandler, IDataQueueUniverseProvider
+    [BrokerageFactory(typeof(FTXBrokerageFactory))]
+    public class FTXBrokerage : BaseWebsocketsBrokerage, IDataQueueHandler, IDataQueueUniverseProvider
     {
+        private const string RestApiUrl = "https://ftx.com/api";
+        private const string WsApiUrl = "wss://ftx.com/ws/";
+
+        private readonly LiveNodePacket _job;
+        private readonly IAlgorithm _algorithm;
         private readonly IDataAggregator _aggregator;
-        private readonly EventBasedDataQueueHandlerSubscriptionManager _subscriptionManager;
+        private readonly RateGate _connectionRateLimiter;
+        private readonly BrokerageConcurrentMessageHandler<WebSocketMessage> _messageHandler;
 
         /// <summary>
         /// Returns true if we're currently connected to the broker
@@ -37,24 +45,42 @@ namespace QuantConnect.TemplateBrokerage
         public override bool IsConnected { get; }
 
         /// <summary>
-         /// Creates a new instance
-         /// </summary>
+        /// Creates a new instance
+        /// </summary>
+        /// <param name="apiKey">api key</param>
+        /// <param name="apiSecret">api secret</param>
+        /// <param name="algorithm">the algorithm instance is required to retrieve account type</param>
         /// <param name="aggregator">consolidate ticks</param>
-        public TemplateBrokerage(IDataAggregator aggregator) : base("TemplateBrokerage")
+        /// <param name="job">The live job packet</param>
+        public FTXBrokerage(string apiKey, string apiSecret, IAlgorithm algorithm, IDataAggregator aggregator, LiveNodePacket job) : base(
+            WsApiUrl,
+            new WebSocketClientWrapper(),
+            new RestClient(RestApiUrl),
+            apiKey,
+            apiSecret,
+            "FTX")
         {
+            _algorithm = algorithm;
+            _job = job;
             _aggregator = aggregator;
-            _subscriptionManager = new EventBasedDataQueueHandlerSubscriptionManager();
-            _subscriptionManager.SubscribeImpl += (s, t) => Subscribe(s);
-            _subscriptionManager.UnsubscribeImpl += (s, t) => Unsubscribe(s);
+            var subscriptionManager = new EventBasedDataQueueHandlerSubscriptionManager();
+            subscriptionManager.SubscribeImpl += (s, t) =>
+            {
+                Subscribe(s);
+                return true;
+            };
+            subscriptionManager.UnsubscribeImpl += (s, t) => Unsubscribe(s);
+
+            SubscriptionManager = subscriptionManager;
 
             // Useful for some brokerages:
 
             // Brokerage helper class to lock websocket message stream while executing an action, for example placing an order
             // avoid race condition with placing an order and getting filled events before finished placing
-            // _messageHandler = new BrokerageConcurrentMessageHandler<>();
+            _messageHandler = new BrokerageConcurrentMessageHandler<WebSocketMessage>((msg) => { });
 
             // Rate gate limiter useful for API/WS calls
-            // _connectionRateLimiter = new RateGate();
+            _connectionRateLimiter = new RateGate(5, TimeSpan.FromSeconds(1));
         }
 
         #region IDataQueueHandler
@@ -73,7 +99,7 @@ namespace QuantConnect.TemplateBrokerage
             }
 
             var enumerator = _aggregator.Add(dataConfig, newDataAvailableHandler);
-            _subscriptionManager.Subscribe(dataConfig);
+            SubscriptionManager.Subscribe(dataConfig);
 
             return enumerator;
         }
@@ -84,7 +110,7 @@ namespace QuantConnect.TemplateBrokerage
         /// <param name="dataConfig">Subscription config to be removed</param>
         public void Unsubscribe(SubscriptionDataConfig dataConfig)
         {
-            _subscriptionManager.Unsubscribe(dataConfig);
+            SubscriptionManager.Unsubscribe(dataConfig);
             _aggregator.Remove(dataConfig);
         }
 
@@ -94,7 +120,6 @@ namespace QuantConnect.TemplateBrokerage
         /// <param name="job">Job we're subscribing for</param>
         public void SetJob(LiveNodePacket job)
         {
-            throw new NotImplementedException();
         }
 
         #endregion
@@ -112,11 +137,15 @@ namespace QuantConnect.TemplateBrokerage
         }
 
         /// <summary>
-        /// Gets all holdings for the account
+        /// Gets all open positions
         /// </summary>
-        /// <returns>The current holdings from the account</returns>
+        /// <returns></returns>
         public override List<Holding> GetAccountHoldings()
         {
+            if (_algorithm.BrokerageModel.AccountType == AccountType.Cash)
+            {
+                return base.GetAccountHoldings(_job?.BrokerageData, _algorithm.Securities.Values);
+            }
             throw new NotImplementedException();
         }
 
@@ -218,7 +247,7 @@ namespace QuantConnect.TemplateBrokerage
         /// Adds the specified symbols to the subscription
         /// </summary>
         /// <param name="symbols">The symbols to be added keyed by SecurityType</param>
-        private bool Subscribe(IEnumerable<Symbol> symbols)
+        public override void Subscribe(IEnumerable<Symbol> symbols)
         {
             throw new NotImplementedException();
         }
@@ -230,6 +259,16 @@ namespace QuantConnect.TemplateBrokerage
         private bool Unsubscribe(IEnumerable<Symbol> symbols)
         {
             throw new NotImplementedException();
+        }
+
+        public override void OnMessage(object sender, WebSocketMessage e)
+        {
+            _messageHandler.HandleNewMessage(e);
+        }
+
+        public override void Dispose()
+        {
+            _connectionRateLimiter.DisposeSafely();
         }
     }
 }

@@ -9,10 +9,10 @@
         <Copyright>Copyright ©  2021</Copyright>
         <TestProjectType>UnitTest</TestProjectType>
         <OutputPath>bin\$(Configuration)\</OutputPath>
-        <Product>QuantConnect.TemplateBrokerage.Tests</Product>
-        <AssemblyName>QuantConnect.TemplateBrokerage.Tests</AssemblyName>
-        <RootNamespace>QuantConnect.TemplateBrokerage.Tests</RootNamespace>
-        <AssemblyTitle>QuantConnect.TemplateBrokerage.Tests</AssemblyTitle>
+        <Product>QuantConnect.FTXBrokerage.Tests</Product>
+        <AssemblyName>QuantConnect.FTXBrokerage.Tests</AssemblyName>
+        <RootNamespace>QuantConnect.FTXBrokerage.Tests</RootNamespace>
+        <AssemblyTitle>QuantConnect.FTXBrokerage.Tests</AssemblyTitle>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     </PropertyGroup>
 
@@ -28,6 +28,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\Lean\Tests\QuantConnect.Tests.csproj" />
-      <ProjectReference Include="..\QuantConnect.TemplateBrokerage\QuantConnect.TemplateBrokerage.csproj" />
+      <ProjectReference Include="..\QuantConnect.FTXBrokerage\QuantConnect.FTXBrokerage.csproj" />
     </ItemGroup>
 </Project>
