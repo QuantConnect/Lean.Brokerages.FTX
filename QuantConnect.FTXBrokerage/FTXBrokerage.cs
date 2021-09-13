@@ -210,11 +210,7 @@ namespace QuantConnect.FTXBrokerage
         /// <returns></returns>
         public override List<Holding> GetAccountHoldings()
         {
-            if (_algorithm.BrokerageModel.AccountType == AccountType.Cash)
-            {
-                return base.GetAccountHoldings(_job?.BrokerageData, _algorithm.Securities.Values);
-            }
-            throw new NotImplementedException();
+            return base.GetAccountHoldings(_job?.BrokerageData, _algorithm.Securities.Values);
         }
 
         /// <summary>
