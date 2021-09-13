@@ -13,22 +13,23 @@
  * limitations under the License.
 */
 
-using System;
-using System.Linq;
+using QuantConnect.Brokerages;
 using QuantConnect.Data;
+using QuantConnect.Interfaces;
 using QuantConnect.Orders;
 using QuantConnect.Packets;
-using QuantConnect.Interfaces;
 using QuantConnect.Securities;
-using QuantConnect.Brokerages;
-using System.Collections.Generic;
 using QuantConnect.Util;
 using RestSharp;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 
 namespace QuantConnect.FTXBrokerage
 {
     [BrokerageFactory(typeof(FTXBrokerageFactory))]
-    public class FTXBrokerage : BaseWebsocketsBrokerage, IDataQueueHandler, IDataQueueUniverseProvider
+    public partial class FTXBrokerage : BaseWebsocketsBrokerage, IDataQueueHandler, IDataQueueUniverseProvider
     {
         private const string RestApiUrl = "https://ftx.com/api";
         private const string WsApiUrl = "wss://ftx.com/ws/";
@@ -36,8 +37,9 @@ namespace QuantConnect.FTXBrokerage
         private readonly LiveNodePacket _job;
         private readonly IAlgorithm _algorithm;
         private readonly IDataAggregator _aggregator;
-        private readonly RateGate _connectionRateLimiter;
         private readonly BrokerageConcurrentMessageHandler<WebSocketMessage> _messageHandler;
+
+        private readonly FTXRestApiClient _restApiClient;
 
         /// <summary>
         /// Returns true if we're currently connected to the broker
@@ -79,8 +81,7 @@ namespace QuantConnect.FTXBrokerage
             // avoid race condition with placing an order and getting filled events before finished placing
             _messageHandler = new BrokerageConcurrentMessageHandler<WebSocketMessage>((msg) => { });
 
-            // Rate gate limiter useful for API/WS calls
-            _connectionRateLimiter = new RateGate(5, TimeSpan.FromSeconds(1));
+            _restApiClient = new FTXRestApiClient(RestClient, apiKey, apiSecret);
         }
 
         #region IDataQueueHandler
@@ -155,7 +156,17 @@ namespace QuantConnect.FTXBrokerage
         /// <returns>The current cash balance for each currency available for trading</returns>
         public override List<CashAmount> GetCashBalance()
         {
-            throw new NotImplementedException();
+            var balances = _restApiClient.GetBalances()
+                .ToList();
+
+            balances = balances.Where(balance => balance.Total > 0).ToList();
+
+            if (balances.Any() != true)
+                return new List<CashAmount>();
+
+            return balances
+                .Select(ConvertBalance)
+                .ToList();
         }
 
         /// <summary>
@@ -268,7 +279,7 @@ namespace QuantConnect.FTXBrokerage
 
         public override void Dispose()
         {
-            _connectionRateLimiter.DisposeSafely();
+            _restApiClient?.DisposeSafely();
         }
     }
 }
