@@ -38,6 +38,7 @@ namespace QuantConnect.FTXBrokerage
         private readonly IAlgorithm _algorithm;
         private readonly IDataAggregator _aggregator;
         private readonly BrokerageConcurrentMessageHandler<WebSocketMessage> _messageHandler;
+        private readonly SymbolPropertiesDatabaseSymbolMapper _symbolMapper = new(Market.FTX);
 
         private readonly FTXRestApiClient _restApiClient;
 
@@ -132,9 +133,62 @@ namespace QuantConnect.FTXBrokerage
         /// NOTE: The order objects returned do not have QC order IDs.
         /// </summary>
         /// <returns>The open orders returned from IB</returns>
-        public override List<Order> GetOpenOrders()
+        public override List<Orders.Order> GetOpenOrders()
         {
-            throw new NotImplementedException();
+            var simpleOrders = _restApiClient.GetOpenOrders();
+            var triggerOrders = _restApiClient.GetOpenTriggerOrders();
+            var openOrders = new List<BaseOrder>(simpleOrders.Count + triggerOrders.Count);
+            openOrders.AddRange(simpleOrders);
+            openOrders.AddRange(triggerOrders);
+
+            var resultList = new List<Orders.Order>(openOrders.Count);
+
+            foreach (var ftxOrder in openOrders)
+            {
+                Orders.Order leanOrder;
+                switch (ftxOrder)
+                {
+                    case Order simpleOrder:
+                        {
+                            leanOrder = CreateOrder(simpleOrder);
+                            break;
+                        }
+                    case TriggerOrder triggerOrder:
+                        {
+                            leanOrder = CreateTriggerOrder(triggerOrder);
+                            break;
+                        }
+                    default:
+                        OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, -1,
+                            "FTXBrokerage.GetOpenOrders: Unsupported order type returned from brokerage: " + ftxOrder.Type));
+                        continue;
+                }
+
+                if (leanOrder == null)
+                {
+                    continue;
+                }
+
+                leanOrder.Quantity = ftxOrder.Quantity;
+                leanOrder.BrokerId = new List<string> { ftxOrder.Id.ToStringInvariant() };
+                leanOrder.Symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market, SecurityType.Crypto, Market.FTX);
+                leanOrder.Time = ftxOrder.CreatedAt;
+                leanOrder.Status = ConvertOrderStatus(ftxOrder);
+
+                if (leanOrder.Status.IsOpen())
+                {
+                    var cached = CachedOrderIDs
+                        .FirstOrDefault(c => c.Value.BrokerId.Contains(leanOrder.BrokerId.First()));
+                    if (cached.Value != null)
+                    {
+                        CachedOrderIDs[cached.Key] = leanOrder;
+                    }
+                }
+
+                resultList.Add(leanOrder);
+            }
+
+            return resultList;
         }
 
         /// <summary>
@@ -174,7 +228,7 @@ namespace QuantConnect.FTXBrokerage
         /// </summary>
         /// <param name="order">The order to be placed</param>
         /// <returns>True if the request for a new order has been placed, false otherwise</returns>
-        public override bool PlaceOrder(Order order)
+        public override bool PlaceOrder(Orders.Order order)
         {
             throw new NotImplementedException();
         }
@@ -184,7 +238,7 @@ namespace QuantConnect.FTXBrokerage
         /// </summary>
         /// <param name="order">The new order information</param>
         /// <returns>True if the request was made for the order to be updated, false otherwise</returns>
-        public override bool UpdateOrder(Order order)
+        public override bool UpdateOrder(Orders.Order order)
         {
             throw new NotImplementedException();
         }
@@ -194,7 +248,7 @@ namespace QuantConnect.FTXBrokerage
         /// </summary>
         /// <param name="order">The order to cancel</param>
         /// <returns>True if the request was made for the order to be canceled, false otherwise</returns>
-        public override bool CancelOrder(Order order)
+        public override bool CancelOrder(Orders.Order order)
         {
             throw new NotImplementedException();
         }

@@ -20,6 +20,7 @@ using QuantConnect.Util;
 using RestSharp;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -31,6 +32,12 @@ namespace QuantConnect.FTXBrokerage
         private readonly string _apiKey;
         private readonly string _apiSecret;
         private readonly HMACSHA256 _hashMaker;
+
+        private readonly JsonSerializerSettings _jsonSettings = new JsonSerializerSettings()
+        {
+            DateFormatHandling = DateFormatHandling.IsoDateFormat,
+            DateParseHandling = DateParseHandling.DateTime
+        };
 
         // Rate gate limiter useful for REST API calls
         private readonly RateGate _restRateLimiter = new(6, TimeSpan.FromSeconds(1));
@@ -48,14 +55,14 @@ namespace QuantConnect.FTXBrokerage
             _hashMaker = new HMACSHA256(Encoding.UTF8.GetBytes(_apiSecret));
         }
 
-        public List<Balance> GetBalances()
+        internal List<Balance> GetBalances()
         {
-            var resultString = "wallet/balances";
+            var path = "wallet/balances";
             var method = Method.GET;
 
-            var sign = GenerateSignature(method, $"/{resultString}", "", out var nonce);
+            var sign = GenerateSignature(method, $"/{path}", "", out var nonce);
 
-            var request = CreateSignedRequest(method, resultString, sign, nonce);
+            var request = CreateSignedRequest(method, path, sign, nonce);
             var response = ExecuteRestRequest(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
@@ -69,6 +76,39 @@ namespace QuantConnect.FTXBrokerage
             if (!ftxResponse.Success)
             {
                 throw new Exception("FTXBrokerage.GetCashBalance: request failed: " +
+                                    $"[{(int)response.StatusCode}] {response.StatusDescription}, " +
+                                    $"Content: {response.Content}, ErrorMessage: {response.ErrorMessage}");
+            }
+
+            return ftxResponse.Result;
+        }
+
+        internal List<BaseOrder> GetOpenOrders()
+            => FetchOpenOrders<Order>("orders").ToList<BaseOrder>();
+
+        internal List<BaseOrder> GetOpenTriggerOrders()
+            => FetchOpenOrders<TriggerOrder>("conditional_orders").ToList<BaseOrder>();
+
+        private List<T> FetchOpenOrders<T>(string path)
+        {
+            var method = Method.GET;
+
+            var sign = GenerateSignature(method, $"/{path}", null, out var nonce);
+
+            var request = CreateSignedRequest(method, path, sign, nonce);
+            var response = ExecuteRestRequest(request);
+
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new Exception("FTXBrokerage.FetchOpenOrders: request failed: " +
+                                    $"[{(int)response.StatusCode}] {response.StatusDescription}, " +
+                                    $"Content: {response.Content}, ErrorMessage: {response.ErrorMessage}");
+            }
+
+            var ftxResponse = JsonConvert.DeserializeObject<Response<List<T>>>(response.Content, _jsonSettings);
+            if (ftxResponse?.Success != true)
+            {
+                throw new Exception("FTXBrokerage.FetchOpenOrders: request failed: " +
                                     $"[{(int)response.StatusCode}] {response.StatusDescription}, " +
                                     $"Content: {response.Content}, ErrorMessage: {response.ErrorMessage}");
             }

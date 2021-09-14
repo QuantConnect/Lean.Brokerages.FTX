@@ -13,6 +13,10 @@
  * limitations under the License.
 */
 
+using System;
+using QuantConnect.Brokerages;
+using QuantConnect.Data.Fundamental;
+using QuantConnect.Orders;
 using QuantConnect.Securities;
 
 namespace QuantConnect.FTXBrokerage
@@ -21,5 +25,75 @@ namespace QuantConnect.FTXBrokerage
     {
         private CashAmount ConvertBalance(Balance wallet)
             => new(wallet.Free, wallet.Coin);
+
+        private Orders.Order CreateOrder(Order ftxOrder)
+        {
+            switch (ftxOrder.Type.LazyToUpper())
+            {
+                case "LIMIT":
+                    return new LimitOrder { LimitPrice = ftxOrder.Price };
+                case "MARKET":
+                    return new MarketOrder();
+                default:
+                    OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, -1,
+                        $"FTXBrokerage.GetOpenOrders: Unsupported order type returned from brokerage: {ftxOrder.Type}"));
+                    return null;
+            }
+        }
+
+        private Orders.Order CreateTriggerOrder(TriggerOrder ftxOrder)
+        {
+            switch (ftxOrder.Type.LazyToUpper())
+            {
+                case "STOP":
+                    {
+                        if (ftxOrder.OrderType.ToUpper() == "LIMIT")
+                        {
+                            return new StopLimitOrder { StopPrice = ftxOrder.TriggerPrice, LimitPrice = ftxOrder.OrderPrice };
+                        }
+
+                        return ftxOrder.OrderType.ToUpper() == "MARKET"
+                            ? new StopMarketOrder { StopPrice = ftxOrder.TriggerPrice }
+                            : null;
+                    }
+                case "TAKE_PROFIT":
+                    {
+                        if (ftxOrder.OrderType.ToUpper() == "LIMIT")
+                        {
+                            return new StopLimitOrder { StopPrice = ftxOrder.TriggerPrice, LimitPrice = ftxOrder.OrderPrice };
+                        }
+
+                        return ftxOrder.OrderType.ToUpper() == "MARKET"
+                            ? new StopMarketOrder { StopPrice = ftxOrder.TriggerPrice }
+                            : null;
+                    }
+                default:
+                    OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, -1,
+                        $"FTXBrokerage.GetOpenOrders: Unsupported order type returned from brokerage: {ftxOrder.Type}"));
+                    return null;
+            }
+        }
+
+        private static OrderStatus ConvertOrderStatus(BaseOrder order)
+        {
+            switch (order.Status.LazyToUpper())
+            {
+                case "NEW":
+                    return OrderStatus.New;
+
+                case "OPEN":
+                    return order.FilledSize == 0
+                        ? OrderStatus.Submitted
+                        : OrderStatus.PartiallyFilled;
+
+                case "CLOSED":
+                    return order.FilledSize == order.Size
+                        ? OrderStatus.Filled
+                        : OrderStatus.Canceled;
+
+                default:
+                    return OrderStatus.None;
+            }
+        }
     }
 }
