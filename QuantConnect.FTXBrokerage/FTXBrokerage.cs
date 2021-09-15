@@ -300,12 +300,8 @@ namespace QuantConnect.FTXBrokerage
 
         private bool CanSubscribe(Symbol symbol)
         {
-            if (symbol.Value.IndexOfInvariant("universe", true) != -1)
-            {
-                return false;
-            }
-
-            throw new NotImplementedException();
+            return symbol.Value.IndexOfInvariant("universe", true) == -1
+                   &&_symbolMapper.IsKnownLeanSymbol(symbol);
         }
 
         /// <summary>
