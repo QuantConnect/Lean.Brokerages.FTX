@@ -24,7 +24,7 @@ namespace QuantConnect.FTXBrokerage
     public partial class FTXBrokerage
     {
         private CashAmount ConvertBalance(Balance wallet)
-            => new(wallet.Free, wallet.Coin);
+            => new(wallet.Total, wallet.Coin);
 
         private Orders.Order CreateOrder(Order ftxOrder)
         {

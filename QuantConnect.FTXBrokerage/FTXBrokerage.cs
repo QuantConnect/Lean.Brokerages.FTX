@@ -213,6 +213,7 @@ namespace QuantConnect.FTXBrokerage
             return base.GetAccountHoldings(_job?.BrokerageData, _algorithm.Securities.Values);
         }
 
+
         /// <summary>
         /// Gets the current cash balance for each currency held in the brokerage account
         /// </summary>
@@ -222,7 +223,8 @@ namespace QuantConnect.FTXBrokerage
             var balances = _restApiClient.GetBalances()
                 .ToList();
 
-            balances = balances.Where(balance => balance.Total > 0).ToList();
+            //TODO: discuss negative balances (borrowed)
+            balances = balances.Where(balance => balance.Total != 0).ToList();
 
             if (balances.Any() != true)
                 return new List<CashAmount>();
