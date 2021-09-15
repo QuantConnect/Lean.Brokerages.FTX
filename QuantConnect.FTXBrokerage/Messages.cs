@@ -23,7 +23,6 @@ namespace QuantConnect.FTXBrokerage
         public ulong Id { get; set; }
         public DateTime CreatedAt { get; set; }
         public string Market { get; set; }
-        public decimal AvgFillPrice { get; set; }
         public decimal Size { get; set; }
         public decimal FilledSize { get; set; }
         public decimal RemainingSize { get; set; }

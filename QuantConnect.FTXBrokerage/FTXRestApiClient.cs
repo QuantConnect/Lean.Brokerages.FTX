@@ -33,10 +33,11 @@ namespace QuantConnect.FTXBrokerage
         private readonly string _apiSecret;
         private readonly HMACSHA256 _hashMaker;
 
-        private readonly JsonSerializerSettings _jsonSettings = new JsonSerializerSettings()
+        private readonly JsonSerializerSettings _jsonSettings = new()
         {
             DateFormatHandling = DateFormatHandling.IsoDateFormat,
-            DateParseHandling = DateParseHandling.DateTime
+            DateParseHandling = DateParseHandling.DateTime,
+            DateTimeZoneHandling = DateTimeZoneHandling.Utc
         };
 
         // Rate gate limiter useful for REST API calls
