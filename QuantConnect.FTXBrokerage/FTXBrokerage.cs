@@ -45,7 +45,7 @@ namespace QuantConnect.FTXBrokerage
         /// <summary>
         /// Returns true if we're currently connected to the broker
         /// </summary>
-        public override bool IsConnected { get; }
+        public override bool IsConnected => WebSocket.IsOpen;
 
         /// <summary>
         /// Creates a new instance
@@ -258,7 +258,10 @@ namespace QuantConnect.FTXBrokerage
         /// </summary>
         public override void Connect()
         {
-            throw new NotImplementedException();
+            if (IsConnected)
+                return;
+
+            base.Connect();
         }
 
         /// <summary>
@@ -266,7 +269,7 @@ namespace QuantConnect.FTXBrokerage
         /// </summary>
         public override void Disconnect()
         {
-            throw new NotImplementedException();
+            WebSocket.Close();
         }
 
         #endregion
@@ -310,7 +313,7 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="symbols">The symbols to be added keyed by SecurityType</param>
         public override void Subscribe(IEnumerable<Symbol> symbols)
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
         }
 
         /// <summary>
