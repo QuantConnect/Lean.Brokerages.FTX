@@ -33,7 +33,7 @@ namespace QuantConnect.FTXBrokerage
         private readonly string _apiSecret;
         private readonly HMACSHA256 _hashMaker;
 
-        private readonly JsonSerializerSettings _jsonSettings = new()
+        public static readonly JsonSerializerSettings JsonSettings = new()
         {
             DateFormatHandling = DateFormatHandling.IsoDateFormat,
             DateParseHandling = DateParseHandling.DateTime,
@@ -106,7 +106,7 @@ namespace QuantConnect.FTXBrokerage
                                     $"Content: {response.Content}, ErrorMessage: {response.ErrorMessage}");
             }
 
-            var ftxResponse = JsonConvert.DeserializeObject<Response<List<T>>>(response.Content, _jsonSettings);
+            var ftxResponse = JsonConvert.DeserializeObject<Response<List<T>>>(response.Content, JsonSettings);
             if (ftxResponse?.Success != true)
             {
                 throw new Exception("FTXBrokerage.FetchOpenOrders: request failed: " +

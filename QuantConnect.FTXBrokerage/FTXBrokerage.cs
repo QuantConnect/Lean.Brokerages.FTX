@@ -25,6 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Timers;
 
 namespace QuantConnect.FTXBrokerage
 {
@@ -39,7 +40,7 @@ namespace QuantConnect.FTXBrokerage
         private readonly IDataAggregator _aggregator;
         private readonly BrokerageConcurrentMessageHandler<WebSocketMessage> _messageHandler;
         private readonly SymbolPropertiesDatabaseSymbolMapper _symbolMapper = new(Market.FTX);
-
+        private readonly Timer _keepAliveTimer;
         private readonly FTXRestApiClient _restApiClient;
 
         /// <summary>
@@ -69,18 +70,30 @@ namespace QuantConnect.FTXBrokerage
             var subscriptionManager = new EventBasedDataQueueHandlerSubscriptionManager();
             subscriptionManager.SubscribeImpl += (s, t) =>
             {
-                Subscribe(s);
-                return true;
+                return SubscribeImpl(s);
             };
             subscriptionManager.UnsubscribeImpl += (s, t) => Unsubscribe(s);
 
             SubscriptionManager = subscriptionManager;
 
+            // Send pings at regular intervals (every 15 seconds)
+            _keepAliveTimer = new Timer
+            {
+                Interval = 15 * 1000
+            };
+            _keepAliveTimer.Elapsed += (s, e) =>
+            {
+                WebSocket.Send("{\"op\": \"ping\"}");
+            };
+
+            WebSocket.Open += (s, e) => { _keepAliveTimer.Start(); };
+            WebSocket.Closed += (s, e) => { _keepAliveTimer.Stop(); };
+
             // Useful for some brokerages:
 
             // Brokerage helper class to lock websocket message stream while executing an action, for example placing an order
             // avoid race condition with placing an order and getting filled events before finished placing
-            _messageHandler = new BrokerageConcurrentMessageHandler<WebSocketMessage>((msg) => { });
+            _messageHandler = new BrokerageConcurrentMessageHandler<WebSocketMessage>(OnMessageImpl);
 
             _restApiClient = new FTXRestApiClient(RestClient, apiKey, apiSecret);
         }
@@ -304,7 +317,7 @@ namespace QuantConnect.FTXBrokerage
         private bool CanSubscribe(Symbol symbol)
         {
             return symbol.Value.IndexOfInvariant("universe", true) == -1
-                   &&_symbolMapper.IsKnownLeanSymbol(symbol);
+                   && _symbolMapper.IsKnownLeanSymbol(symbol);
         }
 
         /// <summary>
@@ -313,7 +326,24 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="symbols">The symbols to be added keyed by SecurityType</param>
         public override void Subscribe(IEnumerable<Symbol> symbols)
         {
-            //throw new NotImplementedException();
+            SubscribeImpl(symbols);
+        }
+
+        /// <summary>
+        /// Adds the specified symbols to the subscription
+        /// </summary>
+        /// <param name="symbols">The symbols to be added keyed by SecurityType</param>
+        private bool SubscribeImpl(IEnumerable<Symbol> symbols)
+        {
+            bool success = true;
+
+            foreach (var symbol in symbols)
+            {
+                success &= SubscribeChannel("trades", symbol);
+                success &= SubscribeChannel("orderbook", symbol);
+            }
+
+            return success;
         }
 
         /// <summary>
@@ -332,6 +362,9 @@ namespace QuantConnect.FTXBrokerage
 
         public override void Dispose()
         {
+            _onSubscribeEvent.DisposeSafely();
+            _onUnsubscribeEvent.DisposeSafely();
+            _keepAliveTimer.DisposeSafely();
             _restApiClient?.DisposeSafely();
         }
     }
