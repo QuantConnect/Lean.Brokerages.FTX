@@ -14,6 +14,7 @@
 */
 
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using QuantConnect.Brokerages;
 using QuantConnect.Logging;
 using QuantConnect.Util;
@@ -35,6 +36,7 @@ namespace QuantConnect.FTXBrokerage
 
         public static readonly JsonSerializerSettings JsonSettings = new()
         {
+            ContractResolver = new CamelCasePropertyNamesContractResolver(),
             DateFormatHandling = DateFormatHandling.IsoDateFormat,
             DateParseHandling = DateParseHandling.DateTime,
             DateTimeZoneHandling = DateTimeZoneHandling.Utc
@@ -66,22 +68,7 @@ namespace QuantConnect.FTXBrokerage
             var request = CreateSignedRequest(method, path, sign, nonce);
             var response = ExecuteRestRequest(request);
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new Exception("FTXBrokerage.GetCashBalance: request failed: " +
-                                    $"[{(int)response.StatusCode}] {response.StatusDescription}, " +
-                                    $"Content: {response.Content}, ErrorMessage: {response.ErrorMessage}");
-            }
-
-            var ftxResponse = JsonConvert.DeserializeObject<Response<List<Balance>>>(response.Content);
-            if (!ftxResponse.Success)
-            {
-                throw new Exception("FTXBrokerage.GetCashBalance: request failed: " +
-                                    $"[{(int)response.StatusCode}] {response.StatusDescription}, " +
-                                    $"Content: {response.Content}, ErrorMessage: {response.ErrorMessage}");
-            }
-
-            return ftxResponse.Result;
+            return EnsureSuccessAndParse<List<Balance>>(response);
         }
 
         internal List<BaseOrder> GetOpenOrders()
@@ -98,23 +85,29 @@ namespace QuantConnect.FTXBrokerage
 
             var request = CreateSignedRequest(method, path, sign, nonce);
             var response = ExecuteRestRequest(request);
+            
+            return EnsureSuccessAndParse<List<T>>(response);
+        }
 
-            if (response.StatusCode != HttpStatusCode.OK)
+        internal BaseOrder PlaceOrder(Dictionary<string, object> body)
+        {
+            var path = "orders";
+            var method = Method.POST;
+
+            var json = JsonConvert.SerializeObject(body, _jsonSettings);
+
+            var sign = GenerateSignature(method, $"/{path}", json, out var nonce);
+            var request = CreateSignedRequest(method, path, sign, nonce);
+            var response = ExecuteWithRateLimit(request);
+
+            var result = EnsureSuccessAndParse<Order>(response);
+
+            if (result.Id == 0)
             {
-                throw new Exception("FTXBrokerage.FetchOpenOrders: request failed: " +
-                                    $"[{(int)response.StatusCode}] {response.StatusDescription}, " +
-                                    $"Content: {response.Content}, ErrorMessage: {response.ErrorMessage}");
+                throw new Exception($"Error parsing response from place order: {response.Content}");
             }
 
-            var ftxResponse = JsonConvert.DeserializeObject<Response<List<T>>>(response.Content, JsonSettings);
-            if (ftxResponse?.Success != true)
-            {
-                throw new Exception("FTXBrokerage.FetchOpenOrders: request failed: " +
-                                    $"[{(int)response.StatusCode}] {response.StatusDescription}, " +
-                                    $"Content: {response.Content}, ErrorMessage: {response.ErrorMessage}");
-            }
-
-            return ftxResponse.Result;
+            return result;
         }
 
         public void Dispose()
@@ -190,6 +183,27 @@ namespace QuantConnect.FTXBrokerage
             var hashStringBase64 = BitConverter.ToString(hash).Replace("-", string.Empty);
             return hashStringBase64.ToLower();
         }
+
+        private T EnsureSuccessAndParse<T>(IRestResponse response)
+        {
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new Exception("FtxRestApiClient request failed: " +
+                                    $"[{(int)response.StatusCode}] {response.StatusDescription}, " +
+                                    $"Content: {response.Content}, ErrorMessage: {response.ErrorMessage}");
+            }
+
+            var ftxResponse = JsonConvert.DeserializeObject<Response<T>>(response.Content, _jsonSettings);
+            if (ftxResponse?.Success != true)
+            {
+                throw new Exception("FtxRestApiClient request failed: " +
+                                    $"[{(int)response.StatusCode}] {response.StatusDescription}, " +
+                                    $"Content: {response.Content}, ErrorMessage: {response.ErrorMessage}");
+            }
+
+            return ftxResponse.Result;
+        }
+
 
         private long GetNonce() => Convert.ToInt64(Time.DateTimeToUnixTimeStampMilliseconds(DateTime.UtcNow));
         #endregion

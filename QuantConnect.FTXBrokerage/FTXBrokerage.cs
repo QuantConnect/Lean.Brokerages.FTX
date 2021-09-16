@@ -16,14 +16,15 @@
 using QuantConnect.Brokerages;
 using QuantConnect.Data;
 using QuantConnect.Interfaces;
+using QuantConnect.Logging;
 using QuantConnect.Orders;
+using QuantConnect.Orders.Fees;
 using QuantConnect.Packets;
 using QuantConnect.Securities;
 using QuantConnect.Util;
 using RestSharp;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Timers;
 
@@ -241,7 +242,60 @@ namespace QuantConnect.FTXBrokerage
         /// <returns>True if the request for a new order has been placed, false otherwise</returns>
         public override bool PlaceOrder(Orders.Order order)
         {
-            throw new NotImplementedException();
+            var submitted = false;
+
+            _messageHandler.WithLockedStream(() =>
+            {
+                try
+                {
+                    var resultOrder = _restApiClient.PlaceOrder(new Dictionary<string, object>()
+                    {
+                        {"market", "XRP/USDT" },
+                        {"side", "sell"},
+                        {"price", null},
+                        {"type", "market"},
+                        {"size", 1.0},
+                        {"reduceOnly", false},
+                        {"ioc", false},
+                        {"postOnly", false},
+                        {"clientId", null}
+                    });
+
+                    var brokerId = resultOrder.Id;
+                    if (CachedOrderIDs.ContainsKey(order.Id))
+                    {
+                        CachedOrderIDs[order.Id].BrokerId.Clear();
+                        CachedOrderIDs[order.Id].BrokerId.Add(brokerId.ToStringInvariant());
+                    }
+                    else
+                    {
+                        order.BrokerId.Add(brokerId.ToStringInvariant());
+                        CachedOrderIDs.TryAdd(order.Id, order);
+                    }
+
+                    OnOrderEvent(new OrderEvent(
+                            order,
+                            resultOrder.CreatedAt,
+                            OrderFee.Zero,
+                            "FTX Order Event")
+                        { Status = OrderStatus.Submitted }
+                    );
+                    OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Information, 0, $"Order submitted successfully - OrderId: {order.Id}"));
+                    submitted = true;
+                }
+                catch (Exception e)
+                {
+                    OnOrderEvent(new OrderEvent(
+                            order,
+                            DateTime.UtcNow,
+                            OrderFee.Zero,
+                            "Binance Order Event")
+                    { Status = OrderStatus.Invalid, Message = e.Message });
+                    OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, -1, e.Message));
+                }
+            });
+
+            return submitted;
         }
 
         /// <summary>
