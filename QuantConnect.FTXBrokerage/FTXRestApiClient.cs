@@ -94,7 +94,7 @@ namespace QuantConnect.FTXBrokerage
             var path = "orders";
             var method = Method.POST;
 
-            var json = JsonConvert.SerializeObject(body, _jsonSettings);
+            var json = JsonConvert.SerializeObject(body, JsonSettings);
 
             var sign = GenerateSignature(method, $"/{path}", json, out var nonce);
             var request = CreateSignedRequest(method, path, sign, nonce);
@@ -193,7 +193,7 @@ namespace QuantConnect.FTXBrokerage
                                     $"Content: {response.Content}, ErrorMessage: {response.ErrorMessage}");
             }
 
-            var ftxResponse = JsonConvert.DeserializeObject<Response<T>>(response.Content, _jsonSettings);
+            var ftxResponse = JsonConvert.DeserializeObject<Response<T>>(response.Content, JsonSettings);
             if (ftxResponse?.Success != true)
             {
                 throw new Exception("FtxRestApiClient request failed: " +
