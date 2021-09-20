@@ -19,6 +19,7 @@ using QuantConnect.Brokerages;
 using QuantConnect.Data.Market;
 using QuantConnect.Logging;
 using System;
+using System.Collections.Concurrent;
 using System.Threading;
 
 namespace QuantConnect.FTXBrokerage
@@ -27,6 +28,7 @@ namespace QuantConnect.FTXBrokerage
     {
         private ManualResetEvent _onSubscribeEvent = new(false);
         private ManualResetEvent _onUnsubscribeEvent = new(false);
+        private readonly ConcurrentDictionary<Symbol, DefaultOrderBook> _orderBooks = new();
 
         /// <summary>
         /// Locking object for the Ticks list in the data queue handler
@@ -78,7 +80,7 @@ namespace QuantConnect.FTXBrokerage
             var e = (WebSocketClientWrapper.TextMessage)webSocketMessage.Data;
             try
             {
-                var obj = JObject.Parse(e.Message);
+                var obj = JsonConvert.DeserializeObject<JObject>(e.Message, FTXRestApiClient.JsonSettings);
 
                 var objEventType = obj["type"];
                 switch (objEventType?.ToObject<string>()?.ToLowerInvariant())
@@ -118,7 +120,9 @@ namespace QuantConnect.FTXBrokerage
 
                     case "partial":
                         {
-                            OnSnapshot(obj);
+                            OnSnapshot(
+                                obj["market"]?.ToObject<string>(),
+                                obj["data"]?.ToObject<Snapshot>());
                             return;
                         }
 
@@ -141,38 +145,120 @@ namespace QuantConnect.FTXBrokerage
             {
                 case "trades":
                     {
-                        var trade = obj.ToObject<dynamic>();
-                        EmitTradeTick(
-                            _symbolMapper.GetLeanSymbol(trade.Symbol, SecurityType.Crypto, Market.Binance),
-                            Time.UnixMillisecondTimeStampToDateTime(trade.Time),
-                            trade.Price,
-                            trade.Quantity);
+                        OnTrade(
+                            obj.SelectToken("market")?.ToObject<string>(),
+                            obj.SelectToken("data")?.ToObject<Trade[]>());
                         return;
                     }
                 case "orderbook":
                     {
-                        var quote = obj.ToObject<dynamic>();
-                        EmitQuoteTick(
-                            _symbolMapper.GetLeanSymbol(quote.Symbol, SecurityType.Crypto, Market.Binance),
-                            quote.BestBidPrice,
-                            quote.BestBidSize,
-                            quote.BestAskPrice,
-                            quote.BestAskSize);
+                        OnOrderbookUpdate(
+                            obj.SelectToken("market")?.ToObject<string>(),
+                            obj.SelectToken("data")?.ToObject<OrderbookUpdate>());
                         return;
                     }
             }
         }
 
-        private void OnSnapshot(JObject obj)
+        private void OnTrade(string market, Trade[] trades)
         {
+            try
+            {
+                var securityType = _symbolMapper.GetBrokerageSecurityType(market);
+                var symbol = _symbolMapper.GetLeanSymbol(market, securityType, Market.FTX);
+                foreach (var trade in trades)
+                {
+                    EmitTradeTick(
+                        symbol,
+                        trade.Time,
+                        trade.Price,
+                        trade.Quantity);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+                throw;
+            }
+        }
 
-            var quote = obj.ToObject<dynamic>();
-            EmitQuoteTick(
-                _symbolMapper.GetLeanSymbol(quote.Symbol, SecurityType.Crypto, Market.Binance),
-                quote.BestBidPrice,
-                quote.BestBidSize,
-                quote.BestAskPrice,
-                quote.BestAskSize);
+        private void OnSnapshot(string market, Snapshot snapshot)
+        {
+            try
+            {
+                var securityType = _symbolMapper.GetBrokerageSecurityType(market);
+                var symbol = _symbolMapper.GetLeanSymbol(market, securityType, Market.FTX);
+
+                DefaultOrderBook orderBook;
+                if (!_orderBooks.TryGetValue(symbol, out orderBook))
+                {
+                    orderBook = new DefaultOrderBook(symbol);
+                    _orderBooks[symbol] = orderBook;
+                }
+                else
+                {
+                    orderBook.BestBidAskUpdated -= OnBestBidAskUpdated;
+                    orderBook.Clear();
+                }
+
+                foreach (var row in snapshot.Bids)
+                {
+                    orderBook.UpdateBidRow(row[0], row[1]);
+                }
+                foreach (var row in snapshot.Asks)
+                {
+                    orderBook.UpdateAskRow(row[0], row[1]);
+                }
+
+                orderBook.BestBidAskUpdated += OnBestBidAskUpdated;
+
+                EmitQuoteTick(symbol, orderBook.BestBidPrice, orderBook.BestBidSize, orderBook.BestAskPrice, orderBook.BestAskSize);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+                throw;
+            }
+        }
+
+        private void OnOrderbookUpdate(string market, OrderbookUpdate update)
+        {
+            try
+            {
+                var securityType = _symbolMapper.GetBrokerageSecurityType(market);
+                var symbol = _symbolMapper.GetLeanSymbol(market, securityType, Market.FTX);
+
+                if (!_orderBooks.TryGetValue(symbol, out var orderBook))
+                {
+                    throw new Exception($"FTXBRokerage.OnOrderbookUpdate: orderbook is not initialized for {market}.");
+                }
+
+                foreach (var row in update.Bids)
+                {
+                    if (row[1] == 0)
+                    {
+                        orderBook.RemoveBidRow(row[0]);
+                        continue;
+                    }
+
+                    orderBook.UpdateBidRow(row[0], row[1]);
+                }
+                foreach (var row in update.Asks)
+                {
+                    if (row[1] == 0)
+                    {
+                        orderBook.RemoveAskRow(row[0]);
+                        continue;
+                    }
+
+                    orderBook.UpdateAskRow(row[0], row[1]);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+                throw;
+            }
         }
 
         private void EmitTradeTick(Symbol symbol, DateTime time, decimal price, decimal quantity)
@@ -196,6 +282,11 @@ namespace QuantConnect.FTXBrokerage
                 Log.Error(e);
                 throw;
             }
+        }
+
+        private void OnBestBidAskUpdated(object sender, BestBidAskUpdatedEventArgs e)
+        {
+            EmitQuoteTick(e.Symbol, e.BestBidPrice, e.BestBidSize, e.BestAskPrice, e.BestAskSize);
         }
 
         private void EmitQuoteTick(Symbol symbol, decimal bidPrice, decimal bidSize, decimal askPrice, decimal askSize)

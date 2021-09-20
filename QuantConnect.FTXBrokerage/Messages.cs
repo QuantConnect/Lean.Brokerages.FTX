@@ -1,5 +1,6 @@
 ﻿using System;
 using Newtonsoft.Json;
+using QuantConnect.Orders;
 
 namespace QuantConnect.FTXBrokerage
 {
@@ -25,13 +26,13 @@ namespace QuantConnect.FTXBrokerage
         public decimal Size { get; set; }
         public decimal FilledSize { get; set; }
         public decimal RemainingSize { get; set; }
-        public string Side { get; set; }
+        public OrderDirection Side { get; set; }
         public string Status { get; set; }
         public string Type { get; set; }
         public bool ReduceOnly { get; set; }
         public string ClientId { get; set; }
 
-        public decimal Quantity => string.Equals(Side, "buy", StringComparison.OrdinalIgnoreCase) ? Size : -Size;
+        public decimal Quantity => Side == OrderDirection.Buy ? Size : -Size;
     }
 
     public class Order : BaseOrder
@@ -48,5 +49,29 @@ namespace QuantConnect.FTXBrokerage
         public decimal OrderPrice { get; set; }
         public decimal TriggerPrice { get; set; }
     }
+
+    public class Snapshot
+    {
+        public double Time { get; set; }
+        public decimal[][] Bids { get; set; }
+        public decimal[][] Asks { get; set; }
+    }
+
+    public class OrderbookUpdate
+    {
+        public double Time { get; set; }
+        public decimal[][] Bids { get; set; }
+        public decimal[][] Asks { get; set; }
+    }
+
+    public class Trade
+    {
+        public decimal Price { get; set; }
+        public decimal Size { get; set; }
+        public OrderDirection Side { get; set; }
+        public DateTime Time { get; set; }
+        public decimal Quantity => Side == OrderDirection.Buy ? Size : -Size;
+    }
+
 #pragma warning restore 1591
 }
