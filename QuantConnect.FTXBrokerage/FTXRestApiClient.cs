@@ -62,9 +62,7 @@ namespace QuantConnect.FTXBrokerage
             var path = "wallet/balances";
             var method = Method.GET;
 
-            var sign = GenerateSignature(method, $"/{path}", "", out var nonce);
-
-            var request = CreateSignedRequest(method, path, sign, nonce);
+            var request = CreateSignedRequest(method, path);
             var response = ExecuteRestRequest(request);
 
             return EnsureSuccessAndParse<List<Balance>>(response);
@@ -80,11 +78,9 @@ namespace QuantConnect.FTXBrokerage
         {
             var method = Method.GET;
 
-            var sign = GenerateSignature(method, $"/{path}", null, out var nonce);
-
-            var request = CreateSignedRequest(method, path, sign, nonce);
+            var request = CreateSignedRequest(method, path);
             var response = ExecuteRestRequest(request);
-            
+
             return EnsureSuccessAndParse<List<T>>(response);
         }
 
@@ -95,8 +91,7 @@ namespace QuantConnect.FTXBrokerage
 
             var json = JsonConvert.SerializeObject(body, JsonSettings);
 
-            var sign = GenerateSignature(method, $"/{path}", json, out var nonce);
-            var request = CreateSignedRequest(method, path, sign, nonce);
+            var request = CreateSignedRequest(method, path, json);
             var response = ExecuteWithRateLimit(request);
 
             var result = EnsureSuccessAndParse<Order>(response);
@@ -160,9 +155,14 @@ namespace QuantConnect.FTXBrokerage
             return request;
         }
 
-        private IRestRequest CreateSignedRequest(Method method, string endpoint, string sign, long nonce, string body = null)
+        private IRestRequest CreateSignedRequest(Method method, string endpoint, object body = null)
         {
             var request = CreateRequest(method, endpoint, body);
+            var sign = GenerateSignatureForPath(
+                method,
+                $"/{endpoint}",
+                body != null ? JsonConvert.SerializeObject(body, JsonSettings) : "",
+                out var nonce);
 
             request.AddHeaders(new List<KeyValuePair<string, string>>
             {
@@ -174,11 +174,27 @@ namespace QuantConnect.FTXBrokerage
             return request;
         }
 
-        private string GenerateSignature(Method method, string url, string requestBody, out long nonce)
+        private string GenerateSignatureForPath(Method method, string url, string requestBody, out long nonce)
+        {
+            var payload = $"{method.ToString().ToUpper()}/api{url}{requestBody}";
+            return GenerateSignature(payload, out nonce);
+        }
+
+        internal object GenerateAuthPayloadForWebSocketApi()
+        {
+            var signature = GenerateSignature("websocket_login", out var nonce);
+            return new
+            {
+                key = _apiKey,
+                sign = signature,
+                time = nonce
+            };
+        }
+
+        private string GenerateSignature(string payload, out long nonce)
         {
             nonce = GetNonce();
-            var signature = $"{nonce}{method.ToString().ToUpper()}/api{url}{requestBody}";
-            var hash = _hashMaker.ComputeHash(Encoding.UTF8.GetBytes(signature));
+            var hash = _hashMaker.ComputeHash(Encoding.UTF8.GetBytes($"{nonce}{payload}"));
             var hashStringBase64 = BitConverter.ToString(hash).Replace("-", string.Empty);
             return hashStringBase64.ToLower();
         }
@@ -202,7 +218,6 @@ namespace QuantConnect.FTXBrokerage
 
             return ftxResponse.Result;
         }
-
 
         private long GetNonce() => Convert.ToInt64(Time.DateTimeToUnixTimeStampMilliseconds(DateTime.UtcNow));
         #endregion

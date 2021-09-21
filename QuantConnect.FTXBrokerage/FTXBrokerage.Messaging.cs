@@ -75,6 +75,23 @@ namespace QuantConnect.FTXBrokerage
             return true;
         }
 
+        /// <summary>
+        /// Subscribes to the authenticated channels (using an single streaming channel)
+        /// </summary>
+        public void Auth()
+        {
+            if (string.IsNullOrEmpty(ApiKey) || string.IsNullOrEmpty(ApiSecret))
+                return;
+
+            WebSocket.Send(JsonConvert.SerializeObject(new
+            {
+                op = "login",
+                args = _restApiClient.GenerateAuthPayloadForWebSocketApi()
+            }));
+
+            Log.Trace("FTXBrokerage.Auth(): Sent authentication request.");
+        }
+
         private void OnMessageImpl(WebSocketMessage webSocketMessage)
         {
             var e = (WebSocketClientWrapper.TextMessage)webSocketMessage.Data;

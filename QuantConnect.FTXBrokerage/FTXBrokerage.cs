@@ -87,7 +87,11 @@ namespace QuantConnect.FTXBrokerage
                 WebSocket.Send("{\"op\": \"ping\"}");
             };
 
-            WebSocket.Open += (s, e) => { _keepAliveTimer.Start(); };
+            WebSocket.Open += (s, e) =>
+            {
+                Auth();
+                _keepAliveTimer.Start();
+            };
             WebSocket.Closed += (s, e) => { _keepAliveTimer.Stop(); };
 
             // Useful for some brokerages:
@@ -391,8 +395,8 @@ namespace QuantConnect.FTXBrokerage
 
             foreach (var symbol in symbols)
             {
-                success &= SubscribeChannel("trades", symbol);
-                success &= SubscribeChannel("orderbook", symbol);
+                //success &= SubscribeChannel("trades", symbol);
+                //success &= SubscribeChannel("orderbook", symbol);
             }
 
             return success;
