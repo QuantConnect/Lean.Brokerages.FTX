@@ -20,6 +20,7 @@ using QuantConnect.Data.Market;
 using QuantConnect.Logging;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace QuantConnect.FTXBrokerage
@@ -35,20 +36,26 @@ namespace QuantConnect.FTXBrokerage
         /// </summary>
         protected readonly object TickLocker = new object();
 
-        private bool SubscribeChannel(string channel, Symbol symbol)
+        private bool SubscribeChannel(string channel, Symbol symbol = null)
         {
             _onSubscribeEvent.Reset();
 
-            WebSocket.Send(JsonConvert.SerializeObject(new
+            var payload = new Dictionary<string, object>()
             {
-                op = "subscribe",
-                channel,
-                market = _symbolMapper.GetBrokerageSymbol(symbol)
-            }, FTXRestApiClient.JsonSettings));
+                {"op", "subscribe"},
+                { "channel", channel }
+            };
+
+            if (symbol != null)
+            {
+                payload.Add("market", _symbolMapper.GetBrokerageSymbol(symbol));
+            }
+
+            WebSocket.Send(JsonConvert.SerializeObject(payload, FTXRestApiClient.JsonSettings));
 
             if (!_onSubscribeEvent.WaitOne(TimeSpan.FromSeconds(30)))
             {
-                Log.Error($"FTXBrokerage.Subscribe(): Could not subscribe to {symbol.Value}/{channel}.");
+                Log.Error($"FTXBrokerage.Subscribe(): Could not subscribe to {symbol?.Value}/{channel}.");
                 return false;
             }
 
@@ -78,7 +85,7 @@ namespace QuantConnect.FTXBrokerage
         /// <summary>
         /// Subscribes to the authenticated channels (using an single streaming channel)
         /// </summary>
-        public void Auth()
+        public void Authenticate()
         {
             if (string.IsNullOrEmpty(ApiKey) || string.IsNullOrEmpty(ApiSecret))
                 return;
@@ -172,6 +179,16 @@ namespace QuantConnect.FTXBrokerage
                         OnOrderbookUpdate(
                             obj.SelectToken("market")?.ToObject<string>(),
                             obj.SelectToken("data")?.ToObject<OrderbookUpdate>());
+                        return;
+                    }
+                case "fills":
+                    {
+                        OnOrderFill(obj.SelectToken("data")?.ToObject<object>());
+                        return;
+                    }
+                case "orders":
+                    {
+                        OnOrderUpdate(obj.SelectToken("data")?.ToObject<object>());
                         return;
                     }
             }
@@ -277,6 +294,17 @@ namespace QuantConnect.FTXBrokerage
                 throw;
             }
         }
+
+        private void OnOrderUpdate(object order)
+        {
+            //throw new NotImplementedException();
+        }
+
+        private void OnOrderFill(object fill)
+        {
+            //throw new NotImplementedException();
+        }
+
 
         private void EmitTradeTick(Symbol symbol, DateTime time, decimal price, decimal quantity)
         {

@@ -73,5 +73,10 @@ namespace QuantConnect.FTXBrokerage
         public decimal Quantity => Side == OrderDirection.Buy ? Size : -Size;
     }
 
+    public class Fill
+    {
+
+    }
+
 #pragma warning restore 1591
 }

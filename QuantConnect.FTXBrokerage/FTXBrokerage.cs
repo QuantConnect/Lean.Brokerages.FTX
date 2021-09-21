@@ -89,7 +89,7 @@ namespace QuantConnect.FTXBrokerage
 
             WebSocket.Open += (s, e) =>
             {
-                Auth();
+                Authenticate();
                 _keepAliveTimer.Start();
             };
             WebSocket.Closed += (s, e) => { _keepAliveTimer.Stop(); };
@@ -331,6 +331,8 @@ namespace QuantConnect.FTXBrokerage
                 return;
 
             base.Connect();
+            SubscribeChannel("fills");
+            SubscribeChannel("orders");
         }
 
         /// <summary>
