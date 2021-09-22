@@ -21,7 +21,11 @@ using QuantConnect.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
+using QuantConnect.Orders;
+using QuantConnect.Orders.Fees;
+using QuantConnect.Securities;
 
 namespace QuantConnect.FTXBrokerage
 {
@@ -30,6 +34,7 @@ namespace QuantConnect.FTXBrokerage
         private ManualResetEvent _onSubscribeEvent = new(false);
         private ManualResetEvent _onUnsubscribeEvent = new(false);
         private readonly ConcurrentDictionary<Symbol, DefaultOrderBook> _orderBooks = new();
+        private readonly ConcurrentDictionary<int, decimal> _fills = new();
 
         /// <summary>
         /// Locking object for the Ticks list in the data queue handler
@@ -183,7 +188,7 @@ namespace QuantConnect.FTXBrokerage
                     }
                 case "fills":
                     {
-                        OnOrderFill(obj.SelectToken("data")?.ToObject<object>());
+                        OnOrderFill(obj.SelectToken("data")?.ToObject<Fill>());
                         return;
                     }
                 case "orders":
@@ -300,9 +305,66 @@ namespace QuantConnect.FTXBrokerage
             //throw new NotImplementedException();
         }
 
-        private void OnOrderFill(object fill)
+        private void OnOrderFill(Fill fill)
         {
-            //throw new NotImplementedException();
+            try
+            {
+                var brokerId = fill.OrderId.ToStringInvariant();
+
+                var order = _orderProvider.GetOrderByBrokerageId(brokerId);
+
+                if (order == null)
+                {
+                    Log.Error($"EmitFillOrder(): order not found: BrokerId: {brokerId}");
+                    return;
+                }
+
+                var securityType = _symbolMapper.GetBrokerageSecurityType(fill.Market);
+                var symbol = _symbolMapper.GetLeanSymbol(fill.Market, securityType, Market.FTX);
+                var fillPrice = fill.Price;
+                var fillQuantity = fill.Quantity;
+                var orderFee = new OrderFee(new CashAmount(Math.Abs(fill.Fee), fill.FeeCurrency));
+
+                var status = OrderStatus.Filled;
+                if (fillQuantity != order.Quantity)
+                {
+                    _fills.TryGetValue(order.Id, out var totalFillQuantity);
+                    totalFillQuantity += fillQuantity;
+                    _fills.AddOrUpdate(order.Id, totalFillQuantity);
+
+                    status = totalFillQuantity == order.Quantity
+                        ? OrderStatus.Filled
+                        : OrderStatus.PartiallyFilled;
+                }
+
+                if (_algorithm.BrokerageModel.AccountType == AccountType.Cash &&
+                    order.Direction == OrderDirection.Buy)
+                {
+                    // fees are debited in the base currency, so we have to subtract them from the filled quantity
+                    fillQuantity -= orderFee.Value.Amount;
+
+                    orderFee = new ModifiedFillQuantityOrderFee(orderFee.Value);
+                }
+
+                if (status == OrderStatus.Filled)
+                {
+                    _fills.TryRemove(order.Id, out _);
+                }
+
+                var orderEvent = new OrderEvent
+                (
+                    order.Id, symbol, fill.Time, status,
+                    fill.Side, fillPrice, fillQuantity,
+                    orderFee, $"FTX Order Event {fill.Side}"
+                );
+
+                OnOrderEvent(orderEvent);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+                throw;
+            }
         }
 
 

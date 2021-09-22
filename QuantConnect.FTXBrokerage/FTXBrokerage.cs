@@ -39,6 +39,7 @@ namespace QuantConnect.FTXBrokerage
         private readonly LiveNodePacket _job;
         private readonly IAlgorithm _algorithm;
         private readonly IDataAggregator _aggregator;
+        private readonly IOrderProvider _orderProvider;
         private readonly BrokerageConcurrentMessageHandler<WebSocketMessage> _messageHandler;
         private readonly SymbolPropertiesDatabaseSymbolMapper _symbolMapper = new(Market.FTX);
         private readonly Timer _keepAliveTimer;
@@ -66,6 +67,7 @@ namespace QuantConnect.FTXBrokerage
             "FTX")
         {
             _algorithm = algorithm;
+            _orderProvider = algorithm?.Transactions;
             _job = job;
             _aggregator = aggregator;
             var subscriptionManager = new EventBasedDataQueueHandlerSubscriptionManager();
@@ -193,16 +195,6 @@ namespace QuantConnect.FTXBrokerage
                 leanOrder.Time = ftxOrder.CreatedAt;
                 leanOrder.Status = ConvertOrderStatus(ftxOrder);
 
-                if (leanOrder.Status.IsOpen())
-                {
-                    var cached = CachedOrderIDs
-                        .FirstOrDefault(c => c.Value.BrokerId.Contains(leanOrder.BrokerId.First()));
-                    if (cached.Value != null)
-                    {
-                        CachedOrderIDs[cached.Key] = leanOrder;
-                    }
-                }
-
                 resultList.Add(leanOrder);
             }
 
@@ -264,18 +256,6 @@ namespace QuantConnect.FTXBrokerage
                         {"postOnly", false},
                         {"clientId", null}
                     });
-
-                    var brokerId = resultOrder.Id;
-                    if (CachedOrderIDs.ContainsKey(order.Id))
-                    {
-                        CachedOrderIDs[order.Id].BrokerId.Clear();
-                        CachedOrderIDs[order.Id].BrokerId.Add(brokerId.ToStringInvariant());
-                    }
-                    else
-                    {
-                        order.BrokerId.Add(brokerId.ToStringInvariant());
-                        CachedOrderIDs.TryAdd(order.Id, order);
-                    }
 
                     OnOrderEvent(new OrderEvent(
                             order,
