@@ -13,11 +13,11 @@
  * limitations under the License.
 */
 
-using System;
 using QuantConnect.Brokerages;
-using QuantConnect.Data.Fundamental;
+using QuantConnect.FTXBrokerage.Messages;
 using QuantConnect.Orders;
 using QuantConnect.Securities;
+using Order = QuantConnect.FTXBrokerage.Messages.Order;
 
 namespace QuantConnect.FTXBrokerage
 {

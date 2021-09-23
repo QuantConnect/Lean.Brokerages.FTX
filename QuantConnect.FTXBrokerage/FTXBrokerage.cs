@@ -15,8 +15,8 @@
 
 using QuantConnect.Brokerages;
 using QuantConnect.Data;
+using QuantConnect.FTXBrokerage.Messages;
 using QuantConnect.Interfaces;
-using QuantConnect.Logging;
 using QuantConnect.Orders;
 using QuantConnect.Orders.Fees;
 using QuantConnect.Packets;
@@ -27,6 +27,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Timers;
+using Order = QuantConnect.FTXBrokerage.Messages.Order;
 
 namespace QuantConnect.FTXBrokerage
 {
@@ -191,7 +192,7 @@ namespace QuantConnect.FTXBrokerage
 
                 leanOrder.Quantity = ftxOrder.Quantity;
                 leanOrder.BrokerId = new List<string> { ftxOrder.Id.ToStringInvariant() };
-                leanOrder.Symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market, SecurityType.Crypto, Market.FTX);
+                leanOrder.Symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market, _symbolMapper.GetBrokerageSecurityType(ftxOrder.Market), Market.FTX);
                 leanOrder.Time = ftxOrder.CreatedAt;
                 leanOrder.Status = ConvertOrderStatus(ftxOrder);
 
@@ -262,7 +263,7 @@ namespace QuantConnect.FTXBrokerage
                             resultOrder.CreatedAt,
                             OrderFee.Zero,
                             "FTX Order Event")
-                        { Status = OrderStatus.Submitted }
+                    { Status = OrderStatus.Submitted }
                     );
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Information, 0, $"Order submitted successfully - OrderId: {order.Id}"));
                     submitted = true;

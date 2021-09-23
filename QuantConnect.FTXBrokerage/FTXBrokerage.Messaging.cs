@@ -17,15 +17,15 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using QuantConnect.Brokerages;
 using QuantConnect.Data.Market;
+using QuantConnect.FTXBrokerage.Messages;
 using QuantConnect.Logging;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using QuantConnect.Orders;
 using QuantConnect.Orders.Fees;
 using QuantConnect.Securities;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading;
 
 namespace QuantConnect.FTXBrokerage
 {
@@ -193,7 +193,7 @@ namespace QuantConnect.FTXBrokerage
                     }
                 case "orders":
                     {
-                        OnOrderUpdate(obj.SelectToken("data")?.ToObject<object>());
+                        OnOrderExecution(obj.SelectToken("data")?.ToObject<BaseOrder>());
                         return;
                     }
             }
@@ -300,9 +300,29 @@ namespace QuantConnect.FTXBrokerage
             }
         }
 
-        private void OnOrderUpdate(object order)
+        private void OnOrderExecution(BaseOrder order)
         {
-            //throw new NotImplementedException();
+            try
+            {
+                var brokerId = order.Id.ToStringInvariant();
+                var foundOrder = _orderProvider.GetOrderByBrokerageId(brokerId);
+                if (foundOrder == null)
+                {
+                    Log.Error($"OnOrderExecution(): order not found. BrokerId: {brokerId}, New Status: {order.Status}");
+                    return;
+                }
+
+                OrderStatus newStatus = ConvertOrderStatus(order);
+                OnOrderEvent(new OrderEvent(foundOrder, DateTime.UtcNow, OrderFee.Zero, "FTX Cancel Order Event")
+                {
+                    Status = newStatus
+                });
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+                throw;
+            }
         }
 
         private void OnOrderFill(Fill fill)
@@ -366,7 +386,6 @@ namespace QuantConnect.FTXBrokerage
                 throw;
             }
         }
-
 
         private void EmitTradeTick(Symbol symbol, DateTime time, decimal price, decimal quantity)
         {

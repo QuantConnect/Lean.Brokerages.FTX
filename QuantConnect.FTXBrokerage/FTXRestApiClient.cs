@@ -16,6 +16,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using QuantConnect.Brokerages;
+using QuantConnect.FTXBrokerage.Messages;
 using QuantConnect.Logging;
 using QuantConnect.Util;
 using RestSharp;
