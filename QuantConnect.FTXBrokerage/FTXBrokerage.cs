@@ -27,6 +27,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Timers;
+using QuantConnect.Data.Market;
+using HistoryRequest = QuantConnect.Data.HistoryRequest;
 using Order = QuantConnect.FTXBrokerage.Messages.Order;
 
 namespace QuantConnect.FTXBrokerage
@@ -274,7 +276,7 @@ namespace QuantConnect.FTXBrokerage
                             order,
                             DateTime.UtcNow,
                             OrderFee.Zero,
-                            "Binance Order Event")
+                            "FTX Order Event")
                     { Status = OrderStatus.Invalid, Message = e.Message });
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, -1, e.Message));
                 }
@@ -322,6 +324,54 @@ namespace QuantConnect.FTXBrokerage
         public override void Disconnect()
         {
             WebSocket.Close();
+        }
+
+        public override IEnumerable<BaseData> GetHistory(HistoryRequest request)
+        {
+            if (request.Resolution == Resolution.Tick || request.Resolution == Resolution.Second)
+            {
+                OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, "InvalidResolution",
+                    $"{request.Resolution} resolution is not supported, no history returned"));
+                yield break;
+            }
+
+            if (request.TickType != TickType.Trade)
+            {
+                OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, "InvalidTickType",
+                    $"{request.TickType} tick type not supported, no history returned"));
+                yield break;
+            }
+
+            var period = request.Resolution.ToTimeSpan();
+
+            int[] resolutions = new[] { 15, 60, 300, 900, 3600, 14400 }
+                .Union(Enumerable.Repeat(86400, 30).Select((s, i) => s * i))
+                .ToArray();
+            int resolutionInSeconds = (int)period.TotalSeconds;
+
+            if (Array.IndexOf(resolutions, resolutionInSeconds) == -1)
+            {
+                OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, "InvalidResolution",
+                    $"Resolution is not supported, no history returned. Options: 15, 60, 300, 900, 3600, 14400, 86400, or any multiple of 86400 up to 30*86400"));
+                yield break;
+            }
+
+            foreach (var candle in _restApiClient.GetHistoricalPrices(_symbolMapper.GetBrokerageSymbol(request.Symbol), resolutionInSeconds, request.StartTimeUtc, request.EndTimeUtc))
+            {
+                yield return new TradeBar()
+                {
+                    Time = candle.StartTime,
+                    Symbol = request.Symbol,
+                    Low = candle.Low,
+                    High = candle.High,
+                    Open = candle.Open,
+                    Close = candle.Close,
+                    Volume = candle.Volume,
+                    Value = candle.Close,
+                    DataType = MarketDataType.TradeBar,
+                    Period = period
+                };
+            }
         }
 
         #endregion
@@ -378,8 +428,8 @@ namespace QuantConnect.FTXBrokerage
 
             foreach (var symbol in symbols)
             {
-                //success &= SubscribeChannel("trades", symbol);
-                //success &= SubscribeChannel("orderbook", symbol);
+                success &= SubscribeChannel("trades", symbol);
+                success &= SubscribeChannel("orderbook", symbol);
             }
 
             return success;

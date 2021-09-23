@@ -16,6 +16,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using QuantConnect.Brokerages;
+using QuantConnect.Data;
 using QuantConnect.FTXBrokerage.Messages;
 using QuantConnect.Logging;
 using QuantConnect.Util;
@@ -74,6 +75,20 @@ namespace QuantConnect.FTXBrokerage
 
         internal List<BaseOrder> GetOpenTriggerOrders()
             => FetchOpenOrders<TriggerOrder>("conditional_orders").ToList<BaseOrder>();
+
+        internal Candle[] GetHistoricalPrices(string market, int resolutionInSeconds, DateTime startTimeUtc, DateTime endTimeUtc)
+        {
+            var path = $"/markets/{market}/candles?resolution={resolutionInSeconds}"
+                       + $"&start_time={(ulong)(Time.DateTimeToUnixTimeStamp(startTimeUtc))}"
+                       + $"&end_time={(ulong)(Time.DateTimeToUnixTimeStamp(endTimeUtc))}";
+
+            var request = CreateRequest(Method.GET, path);
+            var response = ExecuteRestRequest(request);
+
+            var result = EnsureSuccessAndParse<Candle[]>(response);
+
+            return result;
+        }
 
         private List<T> FetchOpenOrders<T>(string path)
         {
@@ -221,6 +236,7 @@ namespace QuantConnect.FTXBrokerage
         }
 
         private long GetNonce() => Convert.ToInt64(Time.DateTimeToUnixTimeStampMilliseconds(DateTime.UtcNow));
+
         #endregion
     }
 }
