@@ -304,7 +304,37 @@ namespace QuantConnect.FTXBrokerage
         /// <returns>True if the request was made for the order to be canceled, false otherwise</returns>
         public override bool CancelOrder(Orders.Order order)
         {
-            throw new NotImplementedException();
+            var submitted = false;
+
+            _messageHandler.WithLockedStream(() =>
+            {
+                try
+                {
+                    submitted = _restApiClient.CancelOrder(Convert.ToUInt64(order.BrokerId.First()));
+
+                    
+                    OnOrderEvent(new OrderEvent(
+                            order,
+                            DateTime.UtcNow, 
+                            OrderFee.Zero,
+                            "Order queued for cancelation")
+                        { Status = OrderStatus.CancelPending }
+                    );
+                    OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Information, 0, $"Order queued for cancelation - OrderId: {order.Id}"));
+                }
+                catch (Exception e)
+                {
+                    OnOrderEvent(new OrderEvent(
+                            order,
+                            DateTime.UtcNow,
+                            OrderFee.Zero,
+                            "FTX Order Event")
+                        { Status = OrderStatus.Invalid, Message = e.Message });
+                    OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, -1, e.Message));
+                }
+            });
+
+            return submitted;
         }
 
         /// <summary>

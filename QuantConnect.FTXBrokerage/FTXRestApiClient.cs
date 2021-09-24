@@ -118,6 +118,19 @@ namespace QuantConnect.FTXBrokerage
             return result;
         }
 
+        internal bool CancelOrder(ulong orderId)
+        {
+            var path = $"orders/{orderId}";
+            var method = Method.DELETE;
+
+            var request = CreateSignedRequest(method, path);
+            var response = ExecuteWithRateLimit(request);
+
+            EnsureSuccessAndParse<string>(response);
+
+            return true;
+        }
+
         public void Dispose()
         {
             _restRateLimiter?.DisposeSafely();
