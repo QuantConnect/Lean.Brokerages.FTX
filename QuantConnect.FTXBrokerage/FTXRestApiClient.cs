@@ -105,9 +105,7 @@ namespace QuantConnect.FTXBrokerage
             var path = "orders";
             var method = Method.POST;
 
-            var json = JsonConvert.SerializeObject(body, JsonSettings);
-
-            var request = CreateSignedRequest(method, path, json);
+            var request = CreateSignedRequest(method, path, body);
             var response = ExecuteWithRateLimit(request);
 
             var result = EnsureSuccessAndParse<Order>(response);
@@ -159,13 +157,13 @@ namespace QuantConnect.FTXBrokerage
 
         private IRestResponse ExecuteRestRequest(IRestRequest request) => _restClient.Execute(request);
 
-        private IRestRequest CreateRequest(Method method, string endpoint, object body = null)
+        private IRestRequest CreateRequest(Method method, string endpoint, string body = null)
         {
             var request = new RestRequest(endpoint, method);
 
-            if (body != null)
+            if (!string.IsNullOrEmpty(body))
             {
-                request.AddJsonBody(body);
+                request.AddParameter("", body, "application/json", ParameterType.RequestBody);
             }
 
             return request;
@@ -173,11 +171,13 @@ namespace QuantConnect.FTXBrokerage
 
         private IRestRequest CreateSignedRequest(Method method, string endpoint, object body = null)
         {
-            var request = CreateRequest(method, endpoint, body);
+            var payload = body != null ? JsonConvert.SerializeObject(body, JsonSettings) : "";
+
+            var request = CreateRequest(method, endpoint, payload);
             var sign = GenerateSignatureForPath(
                 method,
                 $"/{endpoint}",
-                body != null ? JsonConvert.SerializeObject(body, JsonSettings) : "",
+                payload,
                 out var nonce);
 
             request.AddHeaders(new List<KeyValuePair<string, string>>

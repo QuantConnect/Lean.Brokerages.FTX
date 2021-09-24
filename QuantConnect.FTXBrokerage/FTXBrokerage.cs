@@ -260,6 +260,8 @@ namespace QuantConnect.FTXBrokerage
                         {"clientId", null}
                     });
 
+                    order.BrokerId.Add(resultOrder.Id.ToString());
+
                     OnOrderEvent(new OrderEvent(
                             order,
                             resultOrder.CreatedAt,

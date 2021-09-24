@@ -24,6 +24,7 @@ namespace QuantConnect.FTXBrokerage.Messages
 
     public class Order : BaseOrder
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public decimal Price { get; set; }
         [JsonProperty("ioc")]
         public bool ImmediateOrCancel { get; set; }
@@ -33,6 +34,7 @@ namespace QuantConnect.FTXBrokerage.Messages
     public class TriggerOrder : BaseOrder
     {
         public string OrderType { get; set; }
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public decimal OrderPrice { get; set; }
         public decimal TriggerPrice { get; set; }
     }
