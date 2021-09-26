@@ -42,7 +42,7 @@ namespace QuantConnect.FTXBrokerage
             DateFormatHandling = DateFormatHandling.IsoDateFormat,
             DateParseHandling = DateParseHandling.DateTimeOffset
         };
-
+        
         // Rate gate limiter useful for REST API calls
         private readonly RateGate _restRateLimiter = new(6, TimeSpan.FromSeconds(1));
 
@@ -50,6 +50,10 @@ namespace QuantConnect.FTXBrokerage
         /// The rest client instance
         /// </summary>
         private readonly IRestClient _restClient;
+
+        public FTXRestApiClient() : this(new RestClient("https://ftx.com/api"), null, string.Empty)
+        {
+        }
 
         public FTXRestApiClient(IRestClient restClient, string apiKey, string apiSecret)
         {
@@ -75,6 +79,18 @@ namespace QuantConnect.FTXBrokerage
 
         internal List<BaseOrder> GetOpenTriggerOrders()
             => FetchOpenOrders<TriggerOrder>("conditional_orders").ToList<BaseOrder>();
+
+        public ExchangeInfo[] GetAllMarkets()
+        {
+            var path = "/markets";
+
+            var request = CreateRequest(Method.GET, path);
+            var response = ExecuteRestRequest(request);
+
+            var result = EnsureSuccessAndParse<ExchangeInfo[]>(response);
+
+            return result;
+        }
 
         internal Candle[] GetHistoricalPrices(string market, int resolutionInSeconds, DateTime startTimeUtc, DateTime endTimeUtc)
         {
@@ -222,6 +238,11 @@ namespace QuantConnect.FTXBrokerage
 
         private string GenerateSignature(string payload, out long nonce)
         {
+            if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_apiSecret))
+            {
+                throw new InvalidOperationException("Private endpoints require incoming request signed usin API Key and Secret");
+            }
+
             nonce = GetNonce();
             var hash = _hashMaker.ComputeHash(Encoding.UTF8.GetBytes($"{nonce}{payload}"));
             var hashStringBase64 = BitConverter.ToString(hash).Replace("-", string.Empty);
