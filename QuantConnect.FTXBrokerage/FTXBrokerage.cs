@@ -288,12 +288,16 @@ namespace QuantConnect.FTXBrokerage
         }
 
         /// <summary>
-        /// Updates the order with the same id
+        /// Update operation is risky and better to use Cancel & Place combination
+        /// to update the order
         /// </summary>
         /// <param name="order">The new order information</param>
         /// <returns>True if the request was made for the order to be updated, false otherwise</returns>
         public override bool UpdateOrder(Orders.Order order)
         {
+            // Order's queue priority will be reset, and the order ID of the modified order will be different from that of the original order.
+            // Also note: this is implemented as cancelling and replacing your order.
+            // There's a chance that the order meant to be cancelled gets filled and its replacement still gets placed.
             throw new NotImplementedException();
         }
 
