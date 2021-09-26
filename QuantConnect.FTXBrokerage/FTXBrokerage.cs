@@ -432,10 +432,7 @@ namespace QuantConnect.FTXBrokerage
         /// <remarks>This is useful to avoid a selection taking place during invalid times, for example IB reset times or when not connected,
         /// because if allowed selection would fail since IB isn't running and would kill the algorithm</remarks>
         /// <returns>True if selection can take place</returns>
-        public bool CanPerformSelection()
-        {
-            throw new NotImplementedException();
-        }
+        public bool CanPerformSelection() => IsConnected;
 
         #endregion
 
