@@ -15,6 +15,7 @@
 
 using QuantConnect.Brokerages;
 using QuantConnect.Data;
+using QuantConnect.Data.Market;
 using QuantConnect.FTXBrokerage.Messages;
 using QuantConnect.Interfaces;
 using QuantConnect.Orders;
@@ -26,10 +27,10 @@ using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Timers;
-using QuantConnect.Data.Market;
+using System.Threading;
 using HistoryRequest = QuantConnect.Data.HistoryRequest;
 using Order = QuantConnect.FTXBrokerage.Messages.Order;
+using Timer = System.Timers.Timer;
 
 namespace QuantConnect.FTXBrokerage
 {
@@ -316,13 +317,13 @@ namespace QuantConnect.FTXBrokerage
                 {
                     submitted = _restApiClient.CancelOrder(Convert.ToUInt64(order.BrokerId.First()));
 
-                    
+
                     OnOrderEvent(new OrderEvent(
                             order,
-                            DateTime.UtcNow, 
+                            DateTime.UtcNow,
                             OrderFee.Zero,
                             "Order queued for cancelation")
-                        { Status = OrderStatus.CancelPending }
+                    { Status = OrderStatus.CancelPending }
                     );
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Information, 0, $"Order queued for cancelation - OrderId: {order.Id}"));
                 }
@@ -333,7 +334,7 @@ namespace QuantConnect.FTXBrokerage
                             DateTime.UtcNow,
                             OrderFee.Zero,
                             "FTX Order Event")
-                        { Status = OrderStatus.Invalid, Message = e.Message });
+                    { Status = OrderStatus.Invalid, Message = e.Message });
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, -1, e.Message));
                 }
             });
@@ -350,6 +351,13 @@ namespace QuantConnect.FTXBrokerage
                 return;
 
             base.Connect();
+            _authResetEvent = new ManualResetEvent(false);
+            Authenticate();
+
+            if (!_authResetEvent.WaitOne(TimeSpan.FromSeconds(30)))
+            {
+                throw new TimeoutException("Websockets connection timeout.");
+            }
             SubscribeChannel("fills");
             SubscribeChannel("orders");
         }

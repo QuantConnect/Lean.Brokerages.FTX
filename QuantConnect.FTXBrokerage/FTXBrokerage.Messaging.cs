@@ -33,6 +33,7 @@ namespace QuantConnect.FTXBrokerage
     {
         private ManualResetEvent _onSubscribeEvent = new(false);
         private ManualResetEvent _onUnsubscribeEvent = new(false);
+        private ManualResetEvent _authResetEvent;
         private readonly ConcurrentDictionary<Symbol, DefaultOrderBook> _orderBooks = new();
         private readonly ConcurrentDictionary<int, decimal> _fills = new();
 
@@ -137,6 +138,10 @@ namespace QuantConnect.FTXBrokerage
                             if (obj["msg"]?.ToObject<string>() == "Already subscribed")
                             {
                                 _onSubscribeEvent.Set();
+                            }
+                            if (obj["msg"]?.ToObject<string>() == "Already logged in")
+                            {
+                                _authResetEvent?.Set();
                             }
                             return;
                         }
