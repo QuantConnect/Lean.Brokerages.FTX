@@ -352,6 +352,9 @@ namespace QuantConnect.FTXBrokerage
 
             base.Connect();
             _authResetEvent = new ManualResetEvent(false);
+            // we should've authenticated on socket open.
+            // here we try again and expect response {"type": "error", "code": 400, "msg": "Already logged in"}
+            // to be sure that authenticated successfully
             Authenticate();
 
             if (!_authResetEvent.WaitOne(TimeSpan.FromSeconds(30)))

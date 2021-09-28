@@ -40,9 +40,10 @@ namespace QuantConnect.FTXBrokerage
         {
             ContractResolver = new CamelCasePropertyNamesContractResolver(),
             DateFormatHandling = DateFormatHandling.IsoDateFormat,
-            DateParseHandling = DateParseHandling.DateTimeOffset
+            DateParseHandling = DateParseHandling.DateTimeOffset,
+            DateTimeZoneHandling = DateTimeZoneHandling.Utc
         };
-        
+
         // Rate gate limiter useful for REST API calls
         private readonly RateGate _restRateLimiter = new(6, TimeSpan.FromSeconds(1));
 

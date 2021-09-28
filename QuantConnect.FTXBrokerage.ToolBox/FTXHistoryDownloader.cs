@@ -33,7 +33,7 @@ namespace QuantConnect.FTXBrokerage.ToolBox
     public class FTXHistoryDownloader : IDataDownloader
     {
         private readonly FTXBrokerage _brokerage;
-        private readonly SymbolPropertiesDatabaseSymbolMapper _symbolMapper = new SymbolPropertiesDatabaseSymbolMapper(Market.Bitfinex);
+        private readonly SymbolPropertiesDatabaseSymbolMapper _symbolMapper = new SymbolPropertiesDatabaseSymbolMapper(Market.FTX);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FTXDataDownloader"/> class
@@ -74,7 +74,7 @@ namespace QuantConnect.FTXBrokerage.ToolBox
                 false,
                 false,
                 DataNormalizationMode.Adjusted,
-                TickType.Quote);
+                TickType.Trade);
 
             var data = _brokerage.GetHistory(historyRequest);
 
@@ -88,7 +88,7 @@ namespace QuantConnect.FTXBrokerage.ToolBox
         /// <returns></returns>
         private Symbol GetSymbol(string ticker)
         {
-            return _symbolMapper.GetLeanSymbol(ticker, SecurityType.Crypto, Market.Binance);
+            return _symbolMapper.GetLeanSymbol(ticker, SecurityType.Crypto, Market.FTX);
         }
 
         /// <summary>

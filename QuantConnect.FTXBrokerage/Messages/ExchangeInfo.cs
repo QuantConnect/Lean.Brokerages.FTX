@@ -16,7 +16,7 @@
         public bool Enabled { get; set; }
         public decimal Ask { get; set; }
         public decimal Bid { get; set; }
-        public decimal Last { get; set; }
+        public decimal? Last { get; set; }
         public bool PostOnly { get; set; }
         public decimal Price { get; set; }
         public decimal PriceIncrement { get; set; }

@@ -25,5 +25,10 @@
         <HintPath>..\..\Lean\ToolBox\bin\Debug\ref\QuantConnect.ToolBox.dll</HintPath>
       </Reference>
     </ItemGroup>
-
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<ItemGroup>
+			<_CopyItems Include="$(TargetDir)*.*" />
+		</ItemGroup>
+		<Copy SourceFiles="@(_CopyItems)" DestinationFolder="$(SolutionDir)..\Lean\ToolBox\bin\Debug" />
+	</Target>
 </Project>
