@@ -32,9 +32,9 @@ namespace QuantConnect.FTXBrokerage.Tests
                 return new[]
                 {
                     // valid parameters, for example
-                    new TestCaseData(Symbols.BTCUSD, Resolution.Tick, false),
-                    new TestCaseData(Symbols.BTCUSD, Resolution.Minute, false),
-                    new TestCaseData(Symbols.BTCUSD, Resolution.Second, false),
+                    new TestCaseData(XRP_USDT, Resolution.Tick, false),
+                    new TestCaseData(XRP_USDT, Resolution.Minute, false),
+                    new TestCaseData(XRP_USDT, Resolution.Second, false),
                 };
             }
         }

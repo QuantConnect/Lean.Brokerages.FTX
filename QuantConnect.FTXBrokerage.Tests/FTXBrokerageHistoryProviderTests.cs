@@ -50,7 +50,7 @@ namespace QuantConnect.FTXBrokerage.Tests
         {
             TestDelegate test = () =>
             {
-                var brokerage = new FTXBrokerage.FTXBrokerage(null);
+                var brokerage = new FTXBrokerage(string.Empty, string.Empty, null, null, null);
 
                 var historyProvider = new BrokerageHistoryProvider();
                 historyProvider.SetBrokerage(brokerage);
@@ -85,11 +85,11 @@ namespace QuantConnect.FTXBrokerage.Tests
                             Log.Trace($"{tick}");
                         }
                     }
-                    else if(slice.QuoteBars.TryGetValue(symbol, out var quoteBar))
+                    else if (slice.QuoteBars.TryGetValue(symbol, out var quoteBar))
                     {
                         Log.Trace($"{quoteBar}");
                     }
-                    else if(slice.Bars.TryGetValue(symbol, out var tradeBar))
+                    else if (slice.Bars.TryGetValue(symbol, out var tradeBar))
                     {
                         Log.Trace($"{tradeBar}");
                     }

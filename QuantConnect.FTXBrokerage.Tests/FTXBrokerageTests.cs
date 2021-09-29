@@ -13,9 +13,10 @@
  * limitations under the License.
 */
 
+using System;
 using NUnit.Framework;
-using QuantConnect.Tests;
 using QuantConnect.Interfaces;
+using QuantConnect.Orders;
 using QuantConnect.Securities;
 using QuantConnect.Tests.Brokerages;
 
@@ -24,8 +25,10 @@ namespace QuantConnect.FTXBrokerage.Tests
     [TestFixture, Ignore("Not implemented")]
     public partial class FTXBrokerageTests : BrokerageTests
     {
-        protected override Symbol Symbol { get; }
-        protected override SecurityType SecurityType { get; }
+        private static readonly Symbol XRP_USDT = Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX);
+
+        protected override Symbol Symbol => XRP_USDT;
+        protected override SecurityType SecurityType => SecurityType.Crypto;
 
         protected override IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider)
         {
@@ -36,10 +39,8 @@ namespace QuantConnect.FTXBrokerage.Tests
             throw new System.NotImplementedException();
         }
 
-        protected override decimal GetAskPrice(Symbol symbol)
-        {
-            throw new System.NotImplementedException();
-        }
+        // not user, we don't allow update orders
+        protected override decimal GetAskPrice(Symbol symbol) => decimal.Zero;
 
 
         /// <summary>
@@ -49,11 +50,10 @@ namespace QuantConnect.FTXBrokerage.Tests
         {
             return new[]
             {
-                new TestCaseData(new MarketOrderTestParameters(Symbols.BTCUSD)).SetName("MarketOrder"),
-                new TestCaseData(new LimitOrderTestParameters(Symbols.BTCUSD, 10000m, 0.01m)).SetName("LimitOrder"),
-                new TestCaseData(new StopMarketOrderTestParameters(Symbols.BTCUSD, 10000m, 0.01m)).SetName("StopMarketOrder"),
-                new TestCaseData(new StopLimitOrderTestParameters(Symbols.BTCUSD, 10000m, 0.01m)).SetName("StopLimitOrder"),
-                new TestCaseData(new LimitIfTouchedOrderTestParameters(Symbols.BTCUSD, 10000m, 0.01m)).SetName("LimitIfTouchedOrder")
+                new TestCaseData(new MarketOrderTestParameters(XRP_USDT)).SetName("MarketOrder"),
+                new TestCaseData(new NonUpdateableLimitOrderTestParameters(XRP_USDT, 10000m, 0.01m)).SetName("LimitOrder"),
+                new TestCaseData(new NonUpdateableStopMarketOrderTestParameters(XRP_USDT, 10000m, 0.01m)).SetName("StopMarketOrder"),
+                new TestCaseData(new NonUpdateableStopLimitOrderTestParameters(XRP_USDT, 10000m, 0.01m)).SetName("StopLimitOrder")
             };
         }
 
@@ -97,6 +97,11 @@ namespace QuantConnect.FTXBrokerage.Tests
         public override void LongFromShort(OrderTestParameters parameters)
         {
             base.LongFromShort(parameters);
+        }
+
+        protected override void ModifyOrderUntilFilled(Order order, OrderTestParameters parameters, double secondsTimeout = 90)
+        {
+            Assert.Pass("Order update not supported. Please cancel and re-create.");
         }
     }
 }

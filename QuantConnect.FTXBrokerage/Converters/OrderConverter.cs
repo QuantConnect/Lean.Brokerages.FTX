@@ -34,16 +34,15 @@ namespace QuantConnect.FTXBrokerage.Converters
                     };
                     break;
                 case "stop":
-                case "trailing_stop":
                 case "take_profit":
                     order = new TriggerOrder
                     {
-                        OrderType = jObject["price"]?.ToObject<string>(),
+                        OrderType = jObject["orderType"]?.ToObject<string>(),
                         OrderPrice = TryParse<decimal>(jObject["orderPrice"]),
                         TriggerPrice = TryParse<decimal>(jObject["triggerPrice"])
                     };
                     break;
-
+                case "trailing_stop":
                 default:
                     throw new InvalidCastException($"Order type cannot be converted. Order type: {jObject.ToObject<string>()}");
             }

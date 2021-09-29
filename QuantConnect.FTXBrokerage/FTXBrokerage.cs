@@ -28,7 +28,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using DateTime = System.DateTime;
 using HistoryRequest = QuantConnect.Data.HistoryRequest;
+using LimitOrder = QuantConnect.Orders.LimitOrder;
+using MarketOrder = QuantConnect.Orders.MarketOrder;
 using Order = QuantConnect.FTXBrokerage.Messages.Order;
 using Timer = System.Timers.Timer;
 
@@ -248,18 +251,48 @@ namespace QuantConnect.FTXBrokerage
             {
                 try
                 {
-                    var resultOrder = _restApiClient.PlaceOrder(new Dictionary<string, object>()
+                    var payload = new Dictionary<string, object>()
                     {
-                        {"market", "XRP/USDT" },
-                        {"side", "sell"},
-                        {"price", null},
-                        {"type", "market"},
-                        {"size", 1.0},
-                        {"reduceOnly", false},
-                        {"ioc", false},
-                        {"postOnly", false},
-                        {"clientId", null}
-                    });
+                        { "market", _symbolMapper.GetBrokerageSymbol(order.Symbol) },
+                        { "side", order.Direction.ToLower() },
+                        { "size", order.AbsoluteQuantity },
+                        { "reduceOnly", (order.Properties as FTXOrderProperties)?.ReduceOnly ?? false },
+                        { "clientId", null }
+                    };
+
+                    switch (order)
+                    {
+                        case MarketOrder:
+                            {
+                                payload.Add("ioc", false);
+                                payload.Add("price", null);
+                                payload.Add("type", "market");
+                                break;
+                            }
+                        case LimitOrder limitOder:
+                            {
+                                payload.Add("ioc", false);
+                                payload.Add("postOnly", (limitOder.Properties as FTXOrderProperties)?.PostOnly ?? false);
+                                payload.Add("price", limitOder.LimitPrice);
+                                payload.Add("type", "limit");
+                                break;
+                            }
+                        case StopMarketOrder stopMarketOrder:
+                            {
+                                payload.Add("type", "stop");
+                                payload.Add("triggerPrice", stopMarketOrder.StopPrice);
+                                break;
+                            }
+                        case StopLimitOrder takeProfitOrder:
+                            {
+                                payload.Add("type", "takeProfit");
+                                payload.Add("triggerPrice", takeProfitOrder.StopPrice);
+                                payload.Add("orderPrice", takeProfitOrder.LimitPrice);
+                                break;
+                            }
+                    }
+
+                    var resultOrder = _restApiClient.PlaceOrder(payload);
 
                     order.BrokerId.Add(resultOrder.Id.ToString());
 
