@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using QuantConnect.Configuration;
 using DateTime = System.DateTime;
 using HistoryRequest = QuantConnect.Data.HistoryRequest;
 using LimitOrder = QuantConnect.Orders.LimitOrder;
@@ -44,9 +45,9 @@ namespace QuantConnect.FTXBrokerage
         private const string WsApiUrl = "wss://ftx.com/ws/";
 
         private readonly LiveNodePacket _job;
-        private readonly IAlgorithm _algorithm;
         private readonly IDataAggregator _aggregator;
         private readonly IOrderProvider _orderProvider;
+        private readonly ISecurityProvider _securityProvider;
         private readonly BrokerageConcurrentMessageHandler<WebSocketMessage> _messageHandler;
         private readonly SymbolPropertiesDatabaseSymbolMapper _symbolMapper = new(Market.FTX);
         private readonly Timer _keepAliveTimer;
@@ -58,6 +59,30 @@ namespace QuantConnect.FTXBrokerage
         public override bool IsConnected => WebSocket.IsOpen;
 
         /// <summary>
+        /// Creates a new <see cref="FTXBrokerage"/> from the specified values retrieving data from configuration file
+        /// </summary>
+        /// <param name="orderProvider">The order provider</param>
+        /// <param name="securityProvider">The security provider</param>
+        /// <param name="job">The job packet</param>
+        public FTXBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job) : this(
+            Config.Get("ftx-api-key"),
+            Config.Get("ftx-api-secret"),
+            orderProvider,
+            securityProvider,
+            aggregator,
+            job)
+        { }
+
+        public FTXBrokerage(string apiKey, string apiSecret, IAlgorithm algorithm, IDataAggregator aggregator, LiveNodePacket job) : this(
+            apiKey,
+            apiSecret,
+            algorithm?.Transactions,
+            algorithm?.Portfolio,
+            aggregator,
+            job)
+        { }
+
+        /// <summary>
         /// Creates a new instance
         /// </summary>
         /// <param name="apiKey">api key</param>
@@ -65,7 +90,7 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="algorithm">the algorithm instance is required to retrieve account type</param>
         /// <param name="aggregator">consolidate ticks</param>
         /// <param name="job">The live job packet</param>
-        public FTXBrokerage(string apiKey, string apiSecret, IAlgorithm algorithm, IDataAggregator aggregator, LiveNodePacket job) : base(
+        public FTXBrokerage(string apiKey, string apiSecret, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job) : base(
             WsApiUrl,
             new WebSocketClientWrapper(),
             new RestClient(RestApiUrl),
@@ -73,8 +98,8 @@ namespace QuantConnect.FTXBrokerage
             apiSecret,
             "FTX")
         {
-            _algorithm = algorithm;
-            _orderProvider = algorithm?.Transactions;
+            _orderProvider = orderProvider;
+            _securityProvider = securityProvider;
             _job = job;
             _aggregator = aggregator;
             var subscriptionManager = new EventBasedDataQueueHandlerSubscriptionManager();
@@ -214,7 +239,7 @@ namespace QuantConnect.FTXBrokerage
         /// <returns></returns>
         public override List<Holding> GetAccountHoldings()
         {
-            return base.GetAccountHoldings(_job?.BrokerageData, _algorithm.Securities.Values);
+            return base.GetAccountHoldings(_job?.BrokerageData, (_securityProvider as SecurityPortfolioManager)?.Securities.Values);
         }
 
 

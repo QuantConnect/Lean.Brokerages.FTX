@@ -13,12 +13,19 @@
  * limitations under the License.
 */
 
-using System;
+using Moq;
 using NUnit.Framework;
+using QuantConnect.Brokerages;
+using QuantConnect.Configuration;
 using QuantConnect.Interfaces;
+using QuantConnect.Lean.Engine.DataFeeds;
 using QuantConnect.Orders;
+using QuantConnect.Packets;
 using QuantConnect.Securities;
 using QuantConnect.Tests.Brokerages;
+using QuantConnect.Tests.Common.Securities;
+using System;
+using System.Collections.Generic;
 
 namespace QuantConnect.FTXBrokerage.Tests
 {
@@ -31,17 +38,31 @@ namespace QuantConnect.FTXBrokerage.Tests
         protected override SecurityType SecurityType => SecurityType.Crypto;
 
         protected override IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider)
+            => CreateBrokerage(orderProvider, securityProvider, new LiveNodePacket());
+
+        private IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider, LiveNodePacket liveNodePacket)
         {
-            throw new System.NotImplementedException();
+            ((SecurityProvider)securityProvider)[Symbol] = CreateSecurity(Symbol);
+
+            var apiKey = Config.Get("ftx-api-key");
+            var apiSecret = Config.Get("ftx-api-secret");
+
+            return new FTXBrokerage(
+                apiKey,
+                apiSecret,
+                orderProvider,
+                securityProvider,
+                new AggregationManager(),
+                liveNodePacket
+            );
         }
-        protected override bool IsAsync()
-        {
-            throw new System.NotImplementedException();
-        }
+
+        protected override bool IsAsync() => true;
+
+        protected override bool IsCancelAsync() => false;
 
         // not user, we don't allow update orders
         protected override decimal GetAskPrice(Symbol symbol) => decimal.Zero;
-
 
         /// <summary>
         /// Provides the data required to test each order type in various cases
@@ -51,9 +72,9 @@ namespace QuantConnect.FTXBrokerage.Tests
             return new[]
             {
                 new TestCaseData(new MarketOrderTestParameters(XRP_USDT)).SetName("MarketOrder"),
-                new TestCaseData(new NonUpdateableLimitOrderTestParameters(XRP_USDT, 10000m, 0.01m)).SetName("LimitOrder"),
-                new TestCaseData(new NonUpdateableStopMarketOrderTestParameters(XRP_USDT, 10000m, 0.01m)).SetName("StopMarketOrder"),
-                new TestCaseData(new NonUpdateableStopLimitOrderTestParameters(XRP_USDT, 10000m, 0.01m)).SetName("StopLimitOrder")
+                new TestCaseData(new NonUpdateableLimitOrderTestParameters(XRP_USDT, 3m, 0.5m)).SetName("LimitOrder"),
+                new TestCaseData(new NonUpdateableStopMarketOrderTestParameters(XRP_USDT, 3m, 0.5m)).SetName("StopMarketOrder"),
+                new TestCaseData(new NonUpdateableStopLimitOrderTestParameters(XRP_USDT, 3m, 0.5m)).SetName("StopLimitOrder")
             };
         }
 
@@ -102,6 +123,32 @@ namespace QuantConnect.FTXBrokerage.Tests
         protected override void ModifyOrderUntilFilled(Order order, OrderTestParameters parameters, double secondsTimeout = 90)
         {
             Assert.Pass("Order update not supported. Please cancel and re-create.");
+        }
+
+        [Test]
+        public override void GetAccountHoldings()
+        {
+            Assert.IsEmpty(Brokerage.GetAccountHoldings());
+        }
+
+        [Test]
+        public void GetAccountHoldingsClearCache()
+        {
+            var brokerage = new FTXBrokerage(
+                Mock.Of<IOrderProvider>(),
+                Mock.Of<ISecurityProvider>(),
+                new AggregationManager(),
+                new LiveNodePacket()
+                {
+                    BrokerageData = new Dictionary<string, string>()
+                    {
+                        { "live-holdings", "[{\"AveragePrice\": 5,\"Quantity\": 33,\"Symbol\": {\"Value\": \"GME\",\"ID\": \"GME 2T\",\"Permtick\": \"GME\"},\"MarketPrice\": 10, \"Type\":1 }]" }
+                    }
+                }
+            );
+
+            Assert.IsNotEmpty(brokerage.GetAccountHoldings());
+            Assert.IsEmpty(brokerage.GetAccountHoldings());
         }
     }
 }

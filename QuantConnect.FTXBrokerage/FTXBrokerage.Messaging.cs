@@ -362,8 +362,7 @@ namespace QuantConnect.FTXBrokerage
                         : OrderStatus.PartiallyFilled;
                 }
 
-                if (_algorithm.BrokerageModel.AccountType == AccountType.Cash &&
-                    order.Direction == OrderDirection.Buy)
+                if (order.Direction == OrderDirection.Buy)
                 {
                     // fees are debited in the base currency, so we have to subtract them from the filled quantity
                     fillQuantity -= orderFee.Value.Amount;
