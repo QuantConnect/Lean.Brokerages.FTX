@@ -554,7 +554,15 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="symbols">The symbols to be removed keyed by SecurityType</param>
         private bool Unsubscribe(IEnumerable<Symbol> symbols)
         {
-            throw new NotImplementedException();
+            bool success = true;
+
+            foreach (var symbol in symbols)
+            {
+                success &= UnsubscribeChannel("trades", symbol);
+                success &= UnsubscribeChannel("orderbook", symbol);
+            }
+
+            return success;
         }
 
         public override void OnMessage(object sender, WebSocketMessage e)
