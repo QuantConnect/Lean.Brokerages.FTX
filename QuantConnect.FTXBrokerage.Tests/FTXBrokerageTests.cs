@@ -72,9 +72,9 @@ namespace QuantConnect.FTXBrokerage.Tests
             return new[]
             {
                 new TestCaseData(new MarketOrderTestParameters(XRP_USDT)).SetName("MarketOrder"),
-                new TestCaseData(new NonUpdateableLimitOrderTestParameters(XRP_USDT, 3m, 0.5m)).SetName("LimitOrder"),
-                new TestCaseData(new NonUpdateableStopMarketOrderTestParameters(XRP_USDT, 3m, 0.5m)).SetName("StopMarketOrder"),
-                new TestCaseData(new NonUpdateableStopLimitOrderTestParameters(XRP_USDT, 3m, 0.5m)).SetName("StopLimitOrder")
+                new TestCaseData(new NonUpdateableLimitOrderTestParameters(XRP_USDT, 1.5m, 0.5m)).SetName("LimitOrder"),
+                new TestCaseData(new NonUpdateableStopMarketOrderTestParameters(XRP_USDT, 1.5m, 0.5m)).SetName("StopMarketOrder"),
+                new TestCaseData(new NonUpdateableStopLimitOrderTestParameters(XRP_USDT, 1.5m, 0.5m)).SetName("StopLimitOrder")
             };
         }
 

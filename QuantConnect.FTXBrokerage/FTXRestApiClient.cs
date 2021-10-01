@@ -52,6 +52,14 @@ namespace QuantConnect.FTXBrokerage
         /// </summary>
         private readonly IRestClient _restClient;
 
+        private readonly Dictionary<string, string> _orderEndpoint = new()
+        {
+            { "market", "orders" },
+            { "limit", "orders" },
+            { "takeProfit", "conditional_orders" },
+            { "stop", "conditional_orders" },
+        };
+
         public FTXRestApiClient() : this(new RestClient("https://ftx.com/api"), null, string.Empty)
         {
         }
@@ -119,13 +127,13 @@ namespace QuantConnect.FTXBrokerage
 
         internal BaseOrder PlaceOrder(Dictionary<string, object> body)
         {
-            var path = "orders";
+            var path = _orderEndpoint[(string)body["type"]];
             var method = Method.POST;
 
             var request = CreateSignedRequest(method, path, body);
             var response = ExecuteWithRateLimit(request);
 
-            var result = EnsureSuccessAndParse<Order>(response);
+            var result = EnsureSuccessAndParse<BaseOrder>(response);
 
             if (result.Id == 0)
             {
@@ -135,9 +143,9 @@ namespace QuantConnect.FTXBrokerage
             return result;
         }
 
-        internal bool CancelOrder(ulong orderId)
+        internal bool CancelOrder(string orderType, ulong orderId)
         {
-            var path = $"orders/{orderId}";
+            var path = $"{_orderEndpoint[orderType]}/{orderId}";
             var method = Method.DELETE;
 
             var request = CreateSignedRequest(method, path);

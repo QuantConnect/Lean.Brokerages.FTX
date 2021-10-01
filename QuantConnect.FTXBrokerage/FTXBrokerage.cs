@@ -310,12 +310,17 @@ namespace QuantConnect.FTXBrokerage
                                 payload.Add("triggerPrice", stopMarketOrder.StopPrice);
                                 break;
                             }
-                        case StopLimitOrder takeProfitOrder:
+                        case StopLimitOrder stopLimitOrder:
                             {
-                                payload.Add("type", "takeProfit");
-                                payload.Add("triggerPrice", takeProfitOrder.StopPrice);
-                                payload.Add("orderPrice", takeProfitOrder.LimitPrice);
+                                payload.Add("type", "stop");
+                                payload.Add("triggerPrice", stopLimitOrder.StopPrice);
+                                payload.Add("orderPrice", stopLimitOrder.LimitPrice);
                                 break;
+                            }
+                        default:
+                            {
+                                throw new NotSupportedException(
+                                    $"FTXBrokerage.PlaceOrder: Unsupported order type: {order.Type}");
                             }
                     }
 
@@ -375,7 +380,41 @@ namespace QuantConnect.FTXBrokerage
             {
                 try
                 {
-                    submitted = _restApiClient.CancelOrder(Convert.ToUInt64(order.BrokerId.First()));
+                    string orderType;
+                    OrderStatus newStatus;
+                    switch (order.Type)
+                    {
+                        case OrderType.Market:
+                            {
+                                orderType = "market";
+                                newStatus = OrderStatus.CancelPending;
+                                break;
+                            }
+                        case OrderType.Limit:
+                            {
+                                orderType = "limit";
+                                newStatus = OrderStatus.CancelPending;
+                                break;
+                            }
+                        case OrderType.StopMarket:
+                            {
+                                orderType = "stop";
+                                newStatus = OrderStatus.Canceled;
+                                break;
+                            }
+                        case OrderType.StopLimit:
+                            {
+                                orderType = "stop";
+                                newStatus = OrderStatus.Canceled;
+                                break;
+                            }
+                        default:
+                            {
+                                throw new NotSupportedException($"FTXBrokerage.PlaceOrder: Unsupported order type: {order.Type}");
+                            }
+
+                    }
+                    submitted = _restApiClient.CancelOrder(orderType, Convert.ToUInt64(order.BrokerId.First()));
 
 
                     OnOrderEvent(new OrderEvent(
@@ -383,7 +422,7 @@ namespace QuantConnect.FTXBrokerage
                             DateTime.UtcNow,
                             OrderFee.Zero,
                             "Order queued for cancelation")
-                    { Status = OrderStatus.CancelPending }
+                    { Status = newStatus }
                     );
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Information, 0, $"Order queued for cancelation - OrderId: {order.Id}"));
                 }
