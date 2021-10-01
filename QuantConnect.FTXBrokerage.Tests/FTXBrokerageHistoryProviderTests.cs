@@ -20,49 +20,100 @@ using QuantConnect.Lean.Engine.HistoricalData;
 using QuantConnect.Logging;
 using QuantConnect.Securities;
 using System;
+using Moq;
+using QuantConnect.Brokerages;
+using QuantConnect.Interfaces;
 
 namespace QuantConnect.FTXBrokerage.Tests
 {
     [TestFixture, Ignore("Not implemented")]
     public class FTXBrokerageHistoryProviderTests
     {
-        private static TestCaseData[] TestParameters
+        private FTXBrokerage _brokerage;
+
+        public FTXBrokerageHistoryProviderTests()
+        {
+            _brokerage = new FTXBrokerage(
+                Mock.Of<IOrderProvider>(),
+                Mock.Of<ISecurityProvider>(),
+                null,
+                null);
+        }
+
+        private static TestCaseData[] ValidTestParameters
         {
             get
             {
                 return new[]
                 {
                     // valid parameters:
-                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Minute, TimeSpan.FromMinutes(5), TickType.Trade, typeof(TradeBar), false),
-                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Hour, TimeSpan.FromDays(10), TickType.Trade, typeof(TradeBar), false),
-                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Daily, TimeSpan.FromDays(15), TickType.Trade, typeof(TradeBar), false),
-
-                    // invalid parameters:
-                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Tick, TimeSpan.FromMinutes(1), TickType.Trade, typeof(Tick), true),
-                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Second, TimeSpan.FromMinutes(5), TickType.Trade, typeof(Tick), true),
-                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Hour, TimeSpan.FromMinutes(10), TickType.Quote, typeof(TradeBar), true),
-                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Daily, TimeSpan.FromDays(10), TickType.Quote, typeof(TradeBar), true)
+                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Minute, TimeSpan.FromMinutes(5), TickType.Trade, typeof(TradeBar)),
+                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Hour, TimeSpan.FromDays(10), TickType.Trade, typeof(TradeBar)),
+                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Daily, TimeSpan.FromDays(15), TickType.Trade, typeof(TradeBar))
                 };
             }
         }
 
-        [Test, TestCaseSource(nameof(TestParameters))]
-        public void GetsHistory(Symbol symbol, Resolution resolution, TimeSpan period, TickType tickType, Type dataType, bool throwsException)
+        private static TestCaseData[] InvalidTestParameters
         {
-            TestDelegate test = () =>
+            get
             {
-                var brokerage = new FTXBrokerage(string.Empty, string.Empty, null, null, null);
-
-                var historyProvider = new BrokerageHistoryProvider();
-                historyProvider.SetBrokerage(brokerage);
-                historyProvider.Initialize(new HistoryProviderInitializeParameters(null, null, null,
-                    null, null, null, null,
-                    false, null));
-
-                var marketHoursDatabase = MarketHoursDatabase.FromDataFolder();
-                var now = DateTime.UtcNow;
-                var requests = new[]
+                return new[]
                 {
+                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.GDAX), Resolution.Minute, TimeSpan.FromMinutes(5), TickType.Trade, typeof(TradeBar)),
+                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Tick, TimeSpan.FromMinutes(1), TickType.Trade, typeof(Tick)),
+                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Second, TimeSpan.FromMinutes(5), TickType.Trade, typeof(Tick)),
+                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Hour, TimeSpan.FromMinutes(10), TickType.Quote, typeof(TradeBar)),
+                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Daily, TimeSpan.FromDays(10), TickType.Quote, typeof(TradeBar))
+                };
+            }
+        }
+
+        [Test, TestCaseSource(nameof(ValidTestParameters))]
+        public void GetsHistoryForValid(Symbol symbol, Resolution resolution, TimeSpan period, TickType tickType, Type dataType)
+        {
+            int numberOfDataPoints = 0;
+
+            Assert.DoesNotThrow(() =>
+            {
+                numberOfDataPoints = GetsHistory(symbol, resolution, period, tickType, dataType);
+            });
+
+            Assert.Greater(numberOfDataPoints, 0);
+        }
+
+        [Test, TestCaseSource(nameof(InvalidTestParameters))]
+        public void GetsHistoryForInvalid(Symbol symbol, Resolution resolution, TimeSpan period, TickType tickType, Type dataType)
+        {
+            bool receievedWarning = false;
+            EventHandler<BrokerageMessageEvent> messagEventHandler = (s, e) =>
+            {
+                receievedWarning = true;
+            };
+            int numberOfDataPoints = 0;
+            _brokerage.Message += messagEventHandler;
+            Assert.DoesNotThrow(() =>
+            {
+                numberOfDataPoints = GetsHistory(symbol, resolution, period, tickType, dataType);
+            });
+
+            Assert.Zero(numberOfDataPoints);
+            Assert.True(receievedWarning);
+            _brokerage.Message += messagEventHandler;
+        }
+
+        public int GetsHistory(Symbol symbol, Resolution resolution, TimeSpan period, TickType tickType, Type dataType)
+        {
+            var historyProvider = new BrokerageHistoryProvider();
+            historyProvider.SetBrokerage(_brokerage);
+            historyProvider.Initialize(new HistoryProviderInitializeParameters(null, null, null,
+                null, null, null, null,
+                false, Mock.Of<IDataPermissionManager>()));
+
+            var marketHoursDatabase = MarketHoursDatabase.FromDataFolder();
+            var now = DateTime.UtcNow;
+            var requests = new[]
+            {
                     new HistoryRequest(now.Add(-period),
                         now,
                         dataType,
@@ -77,36 +128,27 @@ namespace QuantConnect.FTXBrokerage.Tests
                         tickType)
                 };
 
-                foreach (var slice in historyProvider.GetHistory(requests, TimeZones.Utc))
+            foreach (var slice in historyProvider.GetHistory(requests, TimeZones.Utc))
+            {
+                if (resolution == Resolution.Tick)
                 {
-                    if (resolution == Resolution.Tick)
+                    foreach (var tick in slice.Ticks[symbol])
                     {
-                        foreach (var tick in slice.Ticks[symbol])
-                        {
-                            Log.Trace($"{tick}");
-                        }
-                    }
-                    else if (slice.QuoteBars.TryGetValue(symbol, out var quoteBar))
-                    {
-                        Log.Trace($"{quoteBar}");
-                    }
-                    else if (slice.Bars.TryGetValue(symbol, out var tradeBar))
-                    {
-                        Log.Trace($"{tradeBar}");
+                        Log.Trace($"{tick}");
                     }
                 }
-
-                Log.Trace("Data points retrieved: " + historyProvider.DataPointCount);
-            };
-
-            if (throwsException)
-            {
-                Assert.Throws<ArgumentException>(test);
+                else if (slice.QuoteBars.TryGetValue(symbol, out var quoteBar))
+                {
+                    Log.Trace($"{quoteBar}");
+                }
+                else if (slice.Bars.TryGetValue(symbol, out var tradeBar))
+                {
+                    Log.Trace($"{tradeBar}");
+                }
             }
-            else
-            {
-                Assert.DoesNotThrow(test);
-            }
+
+            Log.Trace("Data points retrieved: " + historyProvider.DataPointCount);
+            return historyProvider.DataPointCount;
         }
     }
 }

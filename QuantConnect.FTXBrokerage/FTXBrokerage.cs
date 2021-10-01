@@ -44,6 +44,8 @@ namespace QuantConnect.FTXBrokerage
         private const string RestApiUrl = "https://ftx.com/api";
         private const string WsApiUrl = "wss://ftx.com/ws/";
 
+        private bool _isAuthenticated;
+
         private readonly LiveNodePacket _job;
         private readonly IDataAggregator _aggregator;
         private readonly IOrderProvider _orderProvider;
@@ -56,7 +58,7 @@ namespace QuantConnect.FTXBrokerage
         /// <summary>
         /// Returns true if we're currently connected to the broker
         /// </summary>
-        public override bool IsConnected => WebSocket.IsOpen;
+        public override bool IsConnected => WebSocket.IsOpen && _isAuthenticated;
 
         /// <summary>
         /// Creates a new <see cref="FTXBrokerage"/> from the specified values retrieving data from configuration file
@@ -419,8 +421,10 @@ namespace QuantConnect.FTXBrokerage
             {
                 throw new TimeoutException("Websockets connection timeout.");
             }
-            SubscribeChannel("fills");
-            SubscribeChannel("orders");
+
+            _isAuthenticated = true;
+            _isAuthenticated &= SubscribeChannel("fills");
+            _isAuthenticated &= SubscribeChannel("orders");
         }
 
         /// <summary>
@@ -433,6 +437,13 @@ namespace QuantConnect.FTXBrokerage
 
         public override IEnumerable<BaseData> GetHistory(HistoryRequest request)
         {
+            if (!_symbolMapper.IsKnownLeanSymbol(request.Symbol))
+            {
+                OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, "InvalidSymbol",
+                    $"Unknown symbol: {request.Symbol.Value}, no history returned"));
+                yield break;
+            }
+
             if (request.Resolution == Resolution.Tick || request.Resolution == Resolution.Second)
             {
                 OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, "InvalidResolution",
