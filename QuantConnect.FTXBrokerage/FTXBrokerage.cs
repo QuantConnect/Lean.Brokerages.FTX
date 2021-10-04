@@ -613,6 +613,7 @@ namespace QuantConnect.FTXBrokerage
         {
             _onSubscribeEvent.DisposeSafely();
             _onUnsubscribeEvent.DisposeSafely();
+            _authResetEvent.DisposeSafely();
             _keepAliveTimer.DisposeSafely();
             _restApiClient?.DisposeSafely();
         }
