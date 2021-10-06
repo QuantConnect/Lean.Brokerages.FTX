@@ -31,8 +31,8 @@ namespace QuantConnect.FTXBrokerage
 {
     public partial class FTXBrokerage
     {
-        private ManualResetEvent _onSubscribeEvent = new(false);
-        private ManualResetEvent _onUnsubscribeEvent = new(false);
+        private readonly ManualResetEvent _onSubscribeEvent = new(false);
+        private readonly ManualResetEvent _onUnsubscribeEvent = new(false);
         private ManualResetEvent _authResetEvent;
         private readonly ConcurrentDictionary<Symbol, DefaultOrderBook> _orderBooks = new();
         private readonly ConcurrentDictionary<int, decimal> _fills = new();
@@ -40,7 +40,7 @@ namespace QuantConnect.FTXBrokerage
         /// <summary>
         /// Locking object for the Ticks list in the data queue handler
         /// </summary>
-        protected readonly object TickLocker = new object();
+        private readonly object _tickLocker = new();
 
         private bool SubscribeChannel(string channel, Symbol symbol = null)
         {
@@ -91,7 +91,7 @@ namespace QuantConnect.FTXBrokerage
         /// <summary>
         /// Subscribes to the authenticated channels (using an single streaming channel)
         /// </summary>
-        public void Authenticate()
+        private void Authenticate()
         {
             if (string.IsNullOrEmpty(ApiKey) || string.IsNullOrEmpty(ApiSecret))
                 return;
@@ -395,7 +395,7 @@ namespace QuantConnect.FTXBrokerage
         {
             try
             {
-                lock (TickLocker)
+                lock (_tickLocker)
                 {
                     EmitTick(new Tick
                     {
@@ -423,7 +423,7 @@ namespace QuantConnect.FTXBrokerage
         {
             try
             {
-                lock (TickLocker)
+                lock (_tickLocker)
                 {
                     EmitTick(new Tick
                     {

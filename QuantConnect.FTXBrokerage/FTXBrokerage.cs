@@ -38,8 +38,11 @@ using Timer = System.Timers.Timer;
 
 namespace QuantConnect.FTXBrokerage
 {
+    /// <summary>
+    /// FTX Brokerage implementation
+    /// </summary>
     [BrokerageFactory(typeof(FTXBrokerageFactory))]
-    public partial class FTXBrokerage : BaseWebsocketsBrokerage, IDataQueueHandler, IDataQueueUniverseProvider
+    public partial class FTXBrokerage : BaseWebsocketsBrokerage, IDataQueueHandler
     {
         private const string RestApiUrl = "https://ftx.com/api";
         private const string WsApiUrl = "wss://ftx.com/ws/";
@@ -75,6 +78,14 @@ namespace QuantConnect.FTXBrokerage
             job)
         { }
 
+        /// <summary>
+        /// Creates a new <see cref="FTXBrokerage"/>
+        /// </summary>
+        /// <param name="apiKey">api key</param>
+        /// <param name="apiSecret">api secret</param>
+        /// <param name="algorithm">the algorithm instance is required to retrieve account type</param>
+        /// <param name="aggregator">consolidate ticks</param>
+        /// <param name="job">The live job packet</param>
         public FTXBrokerage(string apiKey, string apiSecret, IAlgorithm algorithm, IDataAggregator aggregator, LiveNodePacket job) : this(
             apiKey,
             apiSecret,
@@ -89,7 +100,8 @@ namespace QuantConnect.FTXBrokerage
         /// </summary>
         /// <param name="apiKey">api key</param>
         /// <param name="apiSecret">api secret</param>
-        /// <param name="algorithm">the algorithm instance is required to retrieve account type</param>
+        /// <param name="orderProvider">An instance of IOrderProvider used to fetch Order objects by brokerage ID</param>
+        /// <param name="securityProvider">The security provider used to give access to algorithm securities</param>
         /// <param name="aggregator">consolidate ticks</param>
         /// <param name="job">The live job packet</param>
         public FTXBrokerage(string apiKey, string apiSecret, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job) : base(
@@ -138,47 +150,6 @@ namespace QuantConnect.FTXBrokerage
 
             _restApiClient = new FTXRestApiClient(RestClient, apiKey, apiSecret);
         }
-
-        #region IDataQueueHandler
-
-        /// <summary>
-        /// Subscribe to the specified configuration
-        /// </summary>
-        /// <param name="dataConfig">defines the parameters to subscribe to a data feed</param>
-        /// <param name="newDataAvailableHandler">handler to be fired on new data available</param>
-        /// <returns>The new enumerator for this subscription request</returns>
-        public IEnumerator<BaseData> Subscribe(SubscriptionDataConfig dataConfig, EventHandler newDataAvailableHandler)
-        {
-            if (!CanSubscribe(dataConfig.Symbol))
-            {
-                return Enumerable.Empty<BaseData>().GetEnumerator();
-            }
-
-            var enumerator = _aggregator.Add(dataConfig, newDataAvailableHandler);
-            SubscriptionManager.Subscribe(dataConfig);
-
-            return enumerator;
-        }
-
-        /// <summary>
-        /// Removes the specified configuration
-        /// </summary>
-        /// <param name="dataConfig">Subscription config to be removed</param>
-        public void Unsubscribe(SubscriptionDataConfig dataConfig)
-        {
-            SubscriptionManager.Unsubscribe(dataConfig);
-            _aggregator.Remove(dataConfig);
-        }
-
-        /// <summary>
-        /// Sets the job we're subscribing for
-        /// </summary>
-        /// <param name="job">Job we're subscribing for</param>
-        public void SetJob(LiveNodePacket job)
-        {
-        }
-
-        #endregion
 
         #region Brokerage
 
@@ -471,6 +442,11 @@ namespace QuantConnect.FTXBrokerage
             WebSocket.Close();
         }
 
+        /// <summary>
+        /// Gets the history for the requested security
+        /// </summary>
+        /// <param name="request">The historical data request</param>
+        /// <returns>An enumerable of bars covering the span specified in the request</returns>
         public override IEnumerable<BaseData> GetHistory(HistoryRequest request)
         {
             if (!_symbolMapper.IsKnownLeanSymbol(request.Symbol))
@@ -528,36 +504,6 @@ namespace QuantConnect.FTXBrokerage
 
         #endregion
 
-        #region IDataQueueUniverseProvider
-
-        /// <summary>
-        /// Method returns a collection of Symbols that are available at the data source.
-        /// </summary>
-        /// <param name="symbol">Symbol to lookup</param>
-        /// <param name="includeExpired">Include expired contracts</param>
-        /// <param name="securityCurrency">Expected security currency(if any)</param>
-        /// <returns>Enumerable of Symbols, that are associated with the provided Symbol</returns>
-        public IEnumerable<Symbol> LookupSymbols(Symbol symbol, bool includeExpired, string securityCurrency = null)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Returns whether selection can take place or not.
-        /// </summary>
-        /// <remarks>This is useful to avoid a selection taking place during invalid times, for example IB reset times or when not connected,
-        /// because if allowed selection would fail since IB isn't running and would kill the algorithm</remarks>
-        /// <returns>True if selection can take place</returns>
-        public bool CanPerformSelection() => IsConnected;
-
-        #endregion
-
-        private bool CanSubscribe(Symbol symbol)
-        {
-            return symbol.Value.IndexOfInvariant("universe", true) == -1
-                   && _symbolMapper.IsKnownLeanSymbol(symbol);
-        }
-
         /// <summary>
         /// Adds the specified symbols to the subscription
         /// </summary>
@@ -610,8 +556,8 @@ namespace QuantConnect.FTXBrokerage
         {
             _onSubscribeEvent.DisposeSafely();
             _onUnsubscribeEvent.DisposeSafely();
-            _authResetEvent.DisposeSafely();
-            _keepAliveTimer.DisposeSafely();
+            _authResetEvent?.DisposeSafely();
+            _keepAliveTimer?.DisposeSafely();
             _restApiClient?.DisposeSafely();
         }
     }
