@@ -28,12 +28,14 @@ namespace QuantConnect.FTXBrokerage
 
         private Orders.Order CreateOrder(Order ftxOrder)
         {
+            var symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market,
+                _symbolMapper.GetBrokerageSecurityType(ftxOrder.Market), Market.FTX);
             switch (ftxOrder.Type.LazyToUpper())
             {
                 case "LIMIT":
-                    return new LimitOrder { LimitPrice = ftxOrder.Price };
+                    return new LimitOrder(symbol, ftxOrder.Quantity, ftxOrder.Price, ftxOrder.CreatedAt);
                 case "MARKET":
-                    return new MarketOrder();
+                    return new MarketOrder(symbol, ftxOrder.Quantity, ftxOrder.CreatedAt);
                 default:
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, -1,
                         $"FTXBrokerage.GetOpenOrders: Unsupported order type returned from brokerage: {ftxOrder.Type}"));
@@ -43,28 +45,30 @@ namespace QuantConnect.FTXBrokerage
 
         private Orders.Order CreateTriggerOrder(TriggerOrder ftxOrder)
         {
+            var symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market,
+                _symbolMapper.GetBrokerageSecurityType(ftxOrder.Market), Market.FTX);
             switch (ftxOrder.Type.LazyToUpper())
             {
                 case "STOP":
                     {
                         if (ftxOrder.OrderType.ToUpper() == "LIMIT")
                         {
-                            return new StopLimitOrder { StopPrice = ftxOrder.TriggerPrice, LimitPrice = ftxOrder.OrderPrice };
+                            return new StopLimitOrder(symbol, ftxOrder.Quantity, ftxOrder.TriggerPrice, ftxOrder.OrderPrice, ftxOrder.CreatedAt);
                         }
 
                         return ftxOrder.OrderType.ToUpper() == "MARKET"
-                            ? new StopMarketOrder { StopPrice = ftxOrder.TriggerPrice }
+                            ? new StopMarketOrder(symbol, ftxOrder.Quantity, ftxOrder.TriggerPrice, ftxOrder.CreatedAt)
                             : null;
                     }
                 case "TAKE_PROFIT":
                     {
                         if (ftxOrder.OrderType.ToUpper() == "LIMIT")
                         {
-                            return new StopLimitOrder { StopPrice = ftxOrder.TriggerPrice, LimitPrice = ftxOrder.OrderPrice };
+                            return new StopLimitOrder(symbol, ftxOrder.Quantity, ftxOrder.TriggerPrice, ftxOrder.OrderPrice, ftxOrder.CreatedAt);
                         }
 
                         return ftxOrder.OrderType.ToUpper() == "MARKET"
-                            ? new StopMarketOrder { StopPrice = ftxOrder.TriggerPrice }
+                            ? new StopMarketOrder(symbol, ftxOrder.Quantity, ftxOrder.TriggerPrice, ftxOrder.CreatedAt)
                             : null;
                     }
                 default:

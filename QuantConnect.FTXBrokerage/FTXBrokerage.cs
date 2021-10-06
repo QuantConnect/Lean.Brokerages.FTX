@@ -223,10 +223,7 @@ namespace QuantConnect.FTXBrokerage
                     continue;
                 }
 
-                leanOrder.Quantity = ftxOrder.Quantity;
-                leanOrder.BrokerId = new List<string> { ftxOrder.Id.ToStringInvariant() };
-                leanOrder.Symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market, _symbolMapper.GetBrokerageSecurityType(ftxOrder.Market), Market.FTX);
-                leanOrder.Time = ftxOrder.CreatedAt;
+                leanOrder.BrokerId.Add(ftxOrder.Id.ToStringInvariant());
                 leanOrder.Status = ConvertOrderStatus(ftxOrder);
 
                 resultList.Add(leanOrder);
