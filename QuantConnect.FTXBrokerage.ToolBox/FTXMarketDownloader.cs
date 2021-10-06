@@ -45,7 +45,7 @@ namespace QuantConnect.FTXBrokerage.ToolBox
             foreach (var symbol in exchangeInfo.Where(s => s.Type.Equals("spot")).OrderBy(x => x.Name))
             {
                 var leanSymbolName = symbol.Name.Replace("/", "");
-                yield return $"ftx,{leanSymbolName},crypto,{symbol.Name},{symbol.QuoteCurrency},1,{symbol.PriceIncrement.ToStringInvariant()},0.00000001,{symbol.Name}";
+                yield return $"ftx,{leanSymbolName},crypto,{symbol.Name},{symbol.QuoteCurrency},1,{symbol.PriceIncrement.ToStringInvariant()},{symbol.SizeIncrement.ToStringInvariant()},{symbol.Name},{symbol.MinProvideSize.ToStringInvariant()}";
             }
         }
 
