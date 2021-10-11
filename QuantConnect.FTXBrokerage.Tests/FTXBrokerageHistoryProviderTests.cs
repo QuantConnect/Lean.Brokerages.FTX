@@ -26,7 +26,7 @@ using QuantConnect.Interfaces;
 
 namespace QuantConnect.FTXBrokerage.Tests
 {
-    [TestFixture, Ignore("Not implemented")]
+    [TestFixture]
     public class FTXBrokerageHistoryProviderTests
     {
         private FTXBrokerage _brokerage;

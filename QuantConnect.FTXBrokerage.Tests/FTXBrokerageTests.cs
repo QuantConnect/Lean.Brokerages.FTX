@@ -15,7 +15,6 @@
 
 using Moq;
 using NUnit.Framework;
-using QuantConnect.Brokerages;
 using QuantConnect.Configuration;
 using QuantConnect.Interfaces;
 using QuantConnect.Lean.Engine.DataFeeds;
@@ -23,19 +22,35 @@ using QuantConnect.Orders;
 using QuantConnect.Packets;
 using QuantConnect.Securities;
 using QuantConnect.Tests.Brokerages;
-using QuantConnect.Tests.Common.Securities;
 using System;
 using System.Collections.Generic;
 
 namespace QuantConnect.FTXBrokerage.Tests
 {
-    [TestFixture, Ignore("Not implemented")]
+    [TestFixture]
     public partial class FTXBrokerageTests : BrokerageTests
     {
+        private const string _ftxApiConfigKeyName = "ftx-api-key";
+        private const string _ftxApiConfigSecretName = "ftx-api-secret";
+
         private static readonly Symbol XRP_USDT = Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX);
 
         protected override Symbol Symbol => XRP_USDT;
         protected override SecurityType SecurityType => SecurityType.Crypto;
+
+        [OneTimeSetUp]
+        public void GlobalSetup()
+        {
+            if (!Config.TryGetValue<string>(_ftxApiConfigKeyName, out _))
+            {
+                Config.Set(_ftxApiConfigKeyName, Environment.GetEnvironmentVariable(_ftxApiConfigKeyName));
+            }
+
+            if (!Config.TryGetValue<string>(_ftxApiConfigSecretName, out _))
+            {
+                Config.Set(_ftxApiConfigSecretName, Environment.GetEnvironmentVariable(_ftxApiConfigSecretName));
+            }
+        }
 
         protected override IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider)
             => CreateBrokerage(orderProvider, securityProvider, new LiveNodePacket());
