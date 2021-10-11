@@ -110,6 +110,11 @@ namespace QuantConnect.FTXBrokerage
             var e = (WebSocketClientWrapper.TextMessage)webSocketMessage.Data;
             try
             {
+                if (Log.DebuggingEnabled)
+                {
+                    Log.Debug($"FTXBrokerage.OnMessageImpl(): {e.Message}");
+                }
+
                 var obj = JsonConvert.DeserializeObject<JObject>(e.Message, FTXRestApiClient.JsonSettings);
 
                 var objEventType = obj["type"];
@@ -233,8 +238,7 @@ namespace QuantConnect.FTXBrokerage
                 var securityType = _symbolMapper.GetBrokerageSecurityType(market);
                 var symbol = _symbolMapper.GetLeanSymbol(market, securityType, Market.FTX);
 
-                DefaultOrderBook orderBook;
-                if (!_orderBooks.TryGetValue(symbol, out orderBook))
+                if (!_orderBooks.TryGetValue(symbol, out var orderBook))
                 {
                     orderBook = new DefaultOrderBook(symbol);
                     _orderBooks[symbol] = orderBook;

@@ -37,7 +37,7 @@ namespace QuantConnect.FTXBrokerage
         /// The implementation of this property will create the brokerage data dictionary required for
         /// running live jobs. See <see cref="IJobQueueHandler.NextJob"/>
         /// </remarks>
-        public override Dictionary<string, string> BrokerageData => new Dictionary<string, string>
+        public override Dictionary<string, string> BrokerageData => new()
         {
             { "ftx-api-key", Config.Get("ftx-api-key") },
             { "ftx-api-secret", Config.Get("ftx-api-secret") }

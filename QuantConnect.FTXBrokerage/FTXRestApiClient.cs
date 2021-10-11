@@ -16,7 +16,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using QuantConnect.Brokerages;
-using QuantConnect.Data;
 using QuantConnect.FTXBrokerage.Messages;
 using QuantConnect.Logging;
 using QuantConnect.Util;
@@ -30,6 +29,9 @@ using System.Text;
 
 namespace QuantConnect.FTXBrokerage
 {
+    /// <summary>
+    /// FTX brokerage REST client and helpers
+    /// </summary>
     public class FTXRestApiClient : IDisposable
     {
         private readonly string _apiKey;
@@ -60,18 +62,44 @@ namespace QuantConnect.FTXBrokerage
             { "stop", "conditional_orders" },
         };
 
-        public FTXRestApiClient() : this(new RestClient("https://ftx.com/api"), null, string.Empty)
+        /// <summary>
+        /// Parameterless constructor; can be used to access public endpoints
+        /// </summary>
+        public FTXRestApiClient() : this(null, string.Empty)
         {
         }
 
+        /// <summary>
+        /// Creates FTX Rest API client
+        /// </summary>
+        /// <param name="apiKey">api access key</param>
+        /// <param name="apiSecret">api access token</param>
+        public FTXRestApiClient(string apiKey, string apiSecret)
+            : this(new RestClient("https://ftx.com/api"), apiKey, apiSecret)
+        {
+        }
+
+        /// <summary>
+        /// Creates FTX Rest API client
+        /// </summary>
+        /// <param name="restClient">REST sharp client instance instance</param>
+        /// <param name="apiKey">api access key</param>
+        /// <param name="apiSecret">api access token</param>
         public FTXRestApiClient(IRestClient restClient, string apiKey, string apiSecret)
         {
             _apiKey = apiKey;
             _apiSecret = apiSecret;
             _restClient = restClient;
-            _hashMaker = new HMACSHA256(Encoding.UTF8.GetBytes(_apiSecret));
+            if (!string.IsNullOrEmpty(_apiSecret))
+            {
+                _hashMaker = new HMACSHA256(Encoding.UTF8.GetBytes(_apiSecret));
+            }
         }
 
+        /// <summary>
+        /// Gets the current cash balance for each currency held in the brokerage account. Requires authentication.
+        /// </summary>
+        /// <returns>The current cash balance for each currency available for trading</returns>
         internal List<Balance> GetBalances()
         {
             var path = "wallet/balances";
@@ -83,12 +111,24 @@ namespace QuantConnect.FTXBrokerage
             return EnsureSuccessAndParse<List<Balance>>(response);
         }
 
+        /// <summary>
+        /// Gets the open orders (MARKET, LIMIT) in the brokerage account. Requires authentication.
+        /// </summary>
+        /// <returns>The open orders</returns>
         internal List<BaseOrder> GetOpenOrders()
             => FetchOpenOrders<Order>("orders").ToList<BaseOrder>();
 
+        /// <summary>
+        /// Gets the open trigger orders (STOP LOSS, TAKE PROFIT) in the brokerage account. Requires authentication.
+        /// </summary>
+        /// <returns>The open trigger orders</returns>
         internal List<BaseOrder> GetOpenTriggerOrders()
             => FetchOpenOrders<TriggerOrder>("conditional_orders").ToList<BaseOrder>();
 
+        /// <summary>
+        /// Covers all types of markets on FTX.
+        /// </summary>
+        /// <returns>Returns exchange information</returns>
         public ExchangeInfo[] GetAllMarkets()
         {
             var path = "/markets";
@@ -101,6 +141,14 @@ namespace QuantConnect.FTXBrokerage
             return result;
         }
 
+        /// <summary>
+        /// Gets the history for the requested security
+        /// </summary>
+        /// <param name="market">symbol market ticker</param>
+        /// <param name="resolutionInSeconds">resolution</param>
+        /// <param name="startTimeUtc">start time (in UTC)</param>
+        /// <param name="endTimeUtc">end time (in UTC)</param>
+        /// <returns>An enumerable of bars covering the span specified in the request</returns>
         internal Candle[] GetHistoricalPrices(string market, int resolutionInSeconds, DateTime startTimeUtc, DateTime endTimeUtc)
         {
             var path = $"/markets/{market}/candles?resolution={resolutionInSeconds}"
@@ -115,16 +163,11 @@ namespace QuantConnect.FTXBrokerage
             return result;
         }
 
-        private List<T> FetchOpenOrders<T>(string path)
-        {
-            var method = Method.GET;
-
-            var request = CreateSignedRequest(method, path);
-            var response = ExecuteRestRequest(request);
-
-            return EnsureSuccessAndParse<List<T>>(response);
-        }
-
+        /// <summary>
+        /// Submit order to Brokerage
+        /// </summary>
+        /// <param name="body">order payload</param>
+        /// <returns></returns>
         internal BaseOrder PlaceOrder(Dictionary<string, object> body)
         {
             var path = _orderEndpoint[(string)body["type"]];
@@ -143,6 +186,12 @@ namespace QuantConnect.FTXBrokerage
             return result;
         }
 
+        /// <summary>
+        /// Cancel the order. Sync for STOP orders, but async for Market and Limit orders
+        /// </summary>
+        /// <param name="orderType">order type</param>
+        /// <param name="orderId">order id to be cancelled</param>
+        /// <returns>True if the request was made for the order to be canceled, false otherwise</returns>
         internal bool CancelOrder(string orderType, ulong orderId)
         {
             var path = $"{_orderEndpoint[orderType]}/{orderId}";
@@ -156,10 +205,23 @@ namespace QuantConnect.FTXBrokerage
             return true;
         }
 
+        /// <summary>
+        /// Dispose of current FTX Rest API client
+        /// </summary>
         public void Dispose()
         {
             _restRateLimiter?.DisposeSafely();
             _hashMaker?.DisposeSafely();
+        }
+
+        private List<T> FetchOpenOrders<T>(string path)
+        {
+            var method = Method.GET;
+
+            var request = CreateSignedRequest(method, path);
+            var response = ExecuteRestRequest(request);
+
+            return EnsureSuccessAndParse<List<T>>(response);
         }
 
         #region util
@@ -234,6 +296,10 @@ namespace QuantConnect.FTXBrokerage
             return GenerateSignature(payload, out nonce);
         }
 
+        /// <summary>
+        /// Generates Authentication payload for Websocket API
+        /// </summary>
+        /// <returns>Returns object with required information</returns>
         internal object GenerateAuthPayloadForWebSocketApi()
         {
             var signature = GenerateSignature("websocket_login", out var nonce);
@@ -249,7 +315,7 @@ namespace QuantConnect.FTXBrokerage
         {
             if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_apiSecret))
             {
-                throw new InvalidOperationException("Private endpoints require incoming request signed usin API Key and Secret");
+                throw new InvalidOperationException("Private endpoints require incoming request signed using API Key and Secret");
             }
 
             nonce = GetNonce();

@@ -114,19 +114,19 @@ namespace QuantConnect.FTXBrokerage.Tests
             var now = DateTime.UtcNow;
             var requests = new[]
             {
-                    new HistoryRequest(now.Add(-period),
-                        now,
-                        dataType,
-                        symbol,
-                        resolution,
-                        marketHoursDatabase.GetExchangeHours(symbol.ID.Market, symbol, symbol.SecurityType),
-                        marketHoursDatabase.GetDataTimeZone(symbol.ID.Market, symbol, symbol.SecurityType),
-                        resolution,
-                        false,
-                        false,
-                        DataNormalizationMode.Adjusted,
-                        tickType)
-                };
+                new HistoryRequest(now.Add(-period),
+                    now,
+                    dataType,
+                    symbol,
+                    resolution,
+                    marketHoursDatabase.GetExchangeHours(symbol.ID.Market, symbol, symbol.SecurityType),
+                    marketHoursDatabase.GetDataTimeZone(symbol.ID.Market, symbol, symbol.SecurityType),
+                    resolution,
+                    false,
+                    false,
+                    DataNormalizationMode.Adjusted,
+                    tickType)
+            };
 
             foreach (var slice in historyProvider.GetHistory(requests, TimeZones.Utc))
             {

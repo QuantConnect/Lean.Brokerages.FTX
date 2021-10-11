@@ -29,6 +29,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using QuantConnect.Configuration;
+using QuantConnect.Logging;
 using DateTime = System.DateTime;
 using HistoryRequest = QuantConnect.Data.HistoryRequest;
 using LimitOrder = QuantConnect.Orders.LimitOrder;
@@ -332,7 +333,7 @@ namespace QuantConnect.FTXBrokerage
             // Order's queue priority will be reset, and the order ID of the modified order will be different from that of the original order.
             // Also note: this is implemented as cancelling and replacing your order.
             // There's a chance that the order meant to be cancelled gets filled and its replacement still gets placed.
-            throw new NotImplementedException();
+            throw new NotSupportedException("FTXBrokerage.UpdateOrder: Order update not supported. Please cancel and re-create.");
         }
 
         /// <summary>
@@ -547,11 +548,24 @@ namespace QuantConnect.FTXBrokerage
             return success;
         }
 
+        /// <summary>
+        /// Handles websocket received messages
+        /// </summary>
+        /// <param name="sender">web socket wrapper</param>
+        /// <param name="e">message</param>
         public override void OnMessage(object sender, WebSocketMessage e)
         {
+            if (Log.DebuggingEnabled && e.Data is WebSocketClientWrapper.TextMessage message)
+            {
+                Log.Debug($"FTXBrokerage.OnMessage(): {message.Message}");
+            }
+
             _messageHandler.HandleNewMessage(e);
         }
 
+        /// <summary>
+        /// Dispose of the brokerage instance
+        /// </summary>
         public override void Dispose()
         {
             _onSubscribeEvent.DisposeSafely();

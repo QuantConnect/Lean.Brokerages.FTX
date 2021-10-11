@@ -13,28 +13,11 @@
  * limitations under the License.
 */
 
-using QuantConnect.Brokerages;
 using QuantConnect.Data;
-using QuantConnect.Data.Market;
-using QuantConnect.FTXBrokerage.Messages;
-using QuantConnect.Interfaces;
-using QuantConnect.Orders;
-using QuantConnect.Orders.Fees;
 using QuantConnect.Packets;
-using QuantConnect.Securities;
-using QuantConnect.Util;
-using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using QuantConnect.Configuration;
-using DateTime = System.DateTime;
-using HistoryRequest = QuantConnect.Data.HistoryRequest;
-using LimitOrder = QuantConnect.Orders.LimitOrder;
-using MarketOrder = QuantConnect.Orders.MarketOrder;
-using Order = QuantConnect.FTXBrokerage.Messages.Order;
-using Timer = System.Timers.Timer;
 
 namespace QuantConnect.FTXBrokerage
 {
