@@ -17,13 +17,8 @@
     <ItemGroup>
       <ProjectReference Include="..\..\Lean\Brokerages\QuantConnect.Brokerages.csproj" />
       <ProjectReference Include="..\..\Lean\Common\QuantConnect.csproj" />
+      <ProjectReference Include="..\..\Lean\ToolBox\QuantConnect.ToolBox.csproj" />
       <ProjectReference Include="..\QuantConnect.FTXBrokerage\QuantConnect.FTXBrokerage.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Reference Include="QuantConnect.ToolBox">
-        <HintPath>..\..\Lean\ToolBox\bin\Debug\ref\QuantConnect.ToolBox.dll</HintPath>
-      </Reference>
     </ItemGroup>
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
 		<ItemGroup>
