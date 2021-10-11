@@ -28,6 +28,7 @@ using System.Collections.Generic;
 namespace QuantConnect.FTXBrokerage.Tests
 {
     [TestFixture]
+    [Explicit("This test requires a configured and testable FTX practice account")]
     public partial class FTXBrokerageTests : BrokerageTests
     {
         private static readonly Symbol XRP_USDT = Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX);
