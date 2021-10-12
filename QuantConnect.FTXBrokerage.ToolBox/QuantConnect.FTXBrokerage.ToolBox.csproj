@@ -20,10 +20,4 @@
       <ProjectReference Include="..\..\Lean\ToolBox\QuantConnect.ToolBox.csproj" />
       <ProjectReference Include="..\QuantConnect.FTXBrokerage\QuantConnect.FTXBrokerage.csproj" />
     </ItemGroup>
-	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-		<ItemGroup>
-			<_CopyItems Include="$(TargetDir)*.*" />
-		</ItemGroup>
-		<Copy SourceFiles="@(_CopyItems)" DestinationFolder="$(SolutionDir)..\Lean\ToolBox\bin\Debug" />
-	</Target>
 </Project>
