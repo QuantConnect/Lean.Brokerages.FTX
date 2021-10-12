@@ -26,15 +26,14 @@ namespace QuantConnect.FTXBrokerage
         private CashAmount ConvertBalance(Balance wallet)
             => new(wallet.Total, wallet.Coin);
 
-        private Orders.Order CreateOrder(Order ftxOrder)
+        private Orders.Order CreateOrder(Symbol leanSymbol, Order ftxOrder)
         {
-            var symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market, SecurityType.Crypto, Market.FTX);
             switch (ftxOrder.Type.LazyToUpper())
             {
                 case "LIMIT":
-                    return new LimitOrder(symbol, ftxOrder.Quantity, ftxOrder.Price, ftxOrder.CreatedAt);
+                    return new LimitOrder(leanSymbol, ftxOrder.Quantity, ftxOrder.Price, ftxOrder.CreatedAt);
                 case "MARKET":
-                    return new MarketOrder(symbol, ftxOrder.Quantity, ftxOrder.CreatedAt);
+                    return new MarketOrder(leanSymbol, ftxOrder.Quantity, ftxOrder.CreatedAt);
                 default:
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, -1,
                         $"FTXBrokerage.GetOpenOrders: Unsupported order type returned from brokerage: {ftxOrder.Type}"));
@@ -42,31 +41,30 @@ namespace QuantConnect.FTXBrokerage
             }
         }
 
-        private Orders.Order CreateTriggerOrder(TriggerOrder ftxOrder)
+        private Orders.Order CreateTriggerOrder(Symbol leanSymbol, TriggerOrder ftxOrder)
         {
-            var symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market, SecurityType.Crypto, Market.FTX);
             switch (ftxOrder.Type.LazyToUpper())
             {
                 case "STOP":
                     {
                         if (ftxOrder.OrderType.ToUpper() == "LIMIT")
                         {
-                            return new StopLimitOrder(symbol, ftxOrder.Quantity, ftxOrder.TriggerPrice, ftxOrder.OrderPrice, ftxOrder.CreatedAt);
+                            return new StopLimitOrder(leanSymbol, ftxOrder.Quantity, ftxOrder.TriggerPrice, ftxOrder.OrderPrice, ftxOrder.CreatedAt);
                         }
 
                         return ftxOrder.OrderType.ToUpper() == "MARKET"
-                            ? new StopMarketOrder(symbol, ftxOrder.Quantity, ftxOrder.TriggerPrice, ftxOrder.CreatedAt)
+                            ? new StopMarketOrder(leanSymbol, ftxOrder.Quantity, ftxOrder.TriggerPrice, ftxOrder.CreatedAt)
                             : null;
                     }
                 case "TAKE_PROFIT":
                     {
                         if (ftxOrder.OrderType.ToUpper() == "LIMIT")
                         {
-                            return new StopLimitOrder(symbol, ftxOrder.Quantity, ftxOrder.TriggerPrice, ftxOrder.OrderPrice, ftxOrder.CreatedAt);
+                            return new StopLimitOrder(leanSymbol, ftxOrder.Quantity, ftxOrder.TriggerPrice, ftxOrder.OrderPrice, ftxOrder.CreatedAt);
                         }
 
                         return ftxOrder.OrderType.ToUpper() == "MARKET"
-                            ? new StopMarketOrder(symbol, ftxOrder.Quantity, ftxOrder.TriggerPrice, ftxOrder.CreatedAt)
+                            ? new StopMarketOrder(leanSymbol, ftxOrder.Quantity, ftxOrder.TriggerPrice, ftxOrder.CreatedAt)
                             : null;
                     }
                 default:
@@ -83,6 +81,7 @@ namespace QuantConnect.FTXBrokerage
                 case "NEW":
                     return OrderStatus.New;
 
+                case "TRIGGERED":
                 case "OPEN":
                     return order.FilledSize == 0
                         ? OrderStatus.Submitted
@@ -92,6 +91,9 @@ namespace QuantConnect.FTXBrokerage
                     return order.FilledSize == order.Size
                         ? OrderStatus.Filled
                         : OrderStatus.Canceled;
+
+                case "CANCELLED":
+                    return OrderStatus.Canceled;
 
                 default:
                     return OrderStatus.None;

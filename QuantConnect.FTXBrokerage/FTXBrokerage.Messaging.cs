@@ -393,25 +393,14 @@ namespace QuantConnect.FTXBrokerage
 
         private void EmitTradeTick(Symbol symbol, DateTime time, decimal price, decimal quantity)
         {
-            try
+            EmitTick(new Tick
             {
-                lock (_tickLocker)
-                {
-                    EmitTick(new Tick
-                    {
-                        Value = price,
-                        Time = time,
-                        Symbol = symbol,
-                        TickType = TickType.Trade,
-                        Quantity = Math.Abs(quantity)
-                    });
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-                throw;
-            }
+                Value = price,
+                Time = time,
+                Symbol = symbol,
+                TickType = TickType.Trade,
+                Quantity = Math.Abs(quantity)
+            });
         }
 
         private void OnBestBidAskUpdated(object sender, BestBidAskUpdatedEventArgs e)
@@ -421,27 +410,16 @@ namespace QuantConnect.FTXBrokerage
 
         private void EmitQuoteTick(Symbol symbol, decimal bidPrice, decimal bidSize, decimal askPrice, decimal askSize)
         {
-            try
+            EmitTick(new Tick
             {
-                lock (_tickLocker)
-                {
-                    EmitTick(new Tick
-                    {
-                        AskPrice = askPrice,
-                        BidPrice = bidPrice,
-                        Time = DateTime.UtcNow,
-                        Symbol = symbol,
-                        TickType = TickType.Quote,
-                        AskSize = askSize,
-                        BidSize = bidSize
-                    });
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-                throw;
-            }
+                AskPrice = askPrice,
+                BidPrice = bidPrice,
+                Time = DateTime.UtcNow,
+                Symbol = symbol,
+                TickType = TickType.Quote,
+                AskSize = askSize,
+                BidSize = bidSize
+            });
         }
 
         /// <summary>
@@ -450,7 +428,18 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="tick"></param>
         private void EmitTick(Tick tick)
         {
-            _aggregator.Update(tick);
+            try
+            {
+                lock (_tickLocker)
+                {
+                    _aggregator.Update(tick);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+                throw;
+            }
         }
     }
 }

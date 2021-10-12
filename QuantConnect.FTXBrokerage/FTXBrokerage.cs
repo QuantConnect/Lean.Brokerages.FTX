@@ -168,17 +168,18 @@ namespace QuantConnect.FTXBrokerage
 
             foreach (var ftxOrder in openOrders)
             {
+                var symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market, SecurityType.Crypto, Market.FTX);
                 Orders.Order leanOrder;
                 switch (ftxOrder)
                 {
                     case Order simpleOrder:
                         {
-                            leanOrder = CreateOrder(simpleOrder);
+                            leanOrder = CreateOrder(symbol, simpleOrder);
                             break;
                         }
                     case TriggerOrder triggerOrder:
                         {
-                            leanOrder = CreateTriggerOrder(triggerOrder);
+                            leanOrder = CreateTriggerOrder(symbol, triggerOrder);
                             break;
                         }
                     default:
@@ -362,11 +363,6 @@ namespace QuantConnect.FTXBrokerage
                                 break;
                             }
                         case OrderType.StopMarket:
-                            {
-                                orderType = "stop";
-                                newStatus = OrderStatus.Canceled;
-                                break;
-                            }
                         case OrderType.StopLimit:
                             {
                                 orderType = "stop";
@@ -492,7 +488,6 @@ namespace QuantConnect.FTXBrokerage
                     Open = candle.Open,
                     Close = candle.Close,
                     Volume = candle.Volume,
-                    Value = candle.Close,
                     DataType = MarketDataType.TradeBar,
                     Period = period
                 };
