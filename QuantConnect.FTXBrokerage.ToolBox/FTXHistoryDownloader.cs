@@ -28,12 +28,12 @@ using System.Linq;
 namespace QuantConnect.FTXBrokerage.ToolBox
 {
     /// <summary>
-    /// Template Brokerage Data Downloader implementation
+    /// FTX Brokerage Data Downloader implementation
     /// </summary>
     public class FTXHistoryDownloader : IDataDownloader
     {
         private readonly FTXBrokerage _brokerage;
-        private readonly SymbolPropertiesDatabaseSymbolMapper _symbolMapper = new SymbolPropertiesDatabaseSymbolMapper(Market.FTX);
+        private readonly SymbolPropertiesDatabaseSymbolMapper _symbolMapper = new(Market.FTX);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FTXDataDownloader"/> class
@@ -68,7 +68,7 @@ namespace QuantConnect.FTXBrokerage.ToolBox
                 typeof(TradeBar),
                 symbol,
                 resolution,
-                SecurityExchangeHours.AlwaysOpen(TimeZones.EasternStandard),
+                SecurityExchangeHours.AlwaysOpen(TimeZones.Utc),
                 DateTimeZone.Utc,
                 resolution,
                 false,
@@ -106,14 +106,13 @@ namespace QuantConnect.FTXBrokerage.ToolBox
                 var castResolution = allResolutions ? Resolution.Minute : (Resolution)Enum.Parse(typeof(Resolution), resolution);
 
                 // Load settings from config.json
-                var dataDirectory = Config.Get("data-folder", "../../../Data");
+                var dataDirectory = Config.Get("data-folder", Globals.DataFolder);
 
                 var downloader = new FTXHistoryDownloader();
 
                 foreach (var ticker in tickers)
                 {
                     // Download the data
-                    var startDate = fromDate;
                     var symbol = downloader.GetSymbol(ticker);
                     var data = downloader.Get(symbol, castResolution, fromDate, toDate);
                     var bars = data.Cast<TradeBar>().ToList();

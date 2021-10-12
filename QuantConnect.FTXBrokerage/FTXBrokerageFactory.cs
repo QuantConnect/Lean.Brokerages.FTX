@@ -26,7 +26,7 @@ using QuantConnect.Util;
 namespace QuantConnect.FTXBrokerage
 {
     /// <summary>
-    /// Provides a template implementation of BrokerageFactory
+    /// Provides a FTX implementation of BrokerageFactory
     /// </summary>
     public class FTXBrokerageFactory : BrokerageFactory
     {

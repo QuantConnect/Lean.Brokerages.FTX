@@ -61,10 +61,10 @@ namespace QuantConnect.FTXBrokerage.Tests
                 return new[]
                 {
                     new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.GDAX), Resolution.Minute, TimeSpan.FromMinutes(5), TickType.Trade, typeof(TradeBar)),
-                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Tick, TimeSpan.FromMinutes(1), TickType.Trade, typeof(Tick)),
-                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Second, TimeSpan.FromMinutes(5), TickType.Trade, typeof(Tick)),
-                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Hour, TimeSpan.FromMinutes(10), TickType.Quote, typeof(TradeBar)),
-                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Daily, TimeSpan.FromDays(10), TickType.Quote, typeof(TradeBar))
+                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Tick, TimeSpan.FromMinutes(1), TickType.Trade, typeof(TradeBar)),
+                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Second, TimeSpan.FromMinutes(5), TickType.Trade, typeof(TradeBar)),
+                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Hour, TimeSpan.FromMinutes(10), TickType.Quote, typeof(QuoteBar)),
+                    new TestCaseData(Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX), Resolution.Daily, TimeSpan.FromDays(10), TickType.Quote, typeof(QuoteBar))
                 };
             }
         }
