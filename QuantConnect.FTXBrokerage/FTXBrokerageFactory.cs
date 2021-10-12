@@ -76,7 +76,7 @@ namespace QuantConnect.FTXBrokerage
             if (errors.Count != 0)
             {
                 // if we had errors then we can't create the instance
-                throw new Exception(string.Join(Environment.NewLine, errors));
+                throw new ArgumentException(string.Join(Environment.NewLine, errors));
             }
 
             var brokerage = new FTXBrokerage(
