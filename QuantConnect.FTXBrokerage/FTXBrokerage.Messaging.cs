@@ -214,8 +214,9 @@ namespace QuantConnect.FTXBrokerage
             try
             {
                 var symbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Market.FTX);
-                foreach (var trade in trades)
+                for (int i = 0; i < trades.Length; i++)
                 {
+                    var trade = trades[i];
                     EmitTradeTick(
                         symbol,
                         trade.Time,
@@ -247,12 +248,14 @@ namespace QuantConnect.FTXBrokerage
                     orderBook.Clear();
                 }
 
-                foreach (var row in snapshot.Bids)
+                for (var i = 0; i < snapshot.Bids.Length; i++)
                 {
+                    var row = snapshot.Bids[i];
                     orderBook.UpdateBidRow(row[0], row[1]);
                 }
-                foreach (var row in snapshot.Asks)
+                for (var i = 0; i < snapshot.Asks.Length; i++)
                 {
+                    var row = snapshot.Asks[i];
                     orderBook.UpdateAskRow(row[0], row[1]);
                 }
 
@@ -278,8 +281,9 @@ namespace QuantConnect.FTXBrokerage
                     throw new Exception($"FTXBRokerage.OnOrderbookUpdate: orderbook is not initialized for {market}.");
                 }
 
-                foreach (var row in update.Bids)
+                for (var i = 0; i < update.Bids.Length; i++)
                 {
+                    var row = update.Bids[i];
                     if (row[1] == 0)
                     {
                         orderBook.RemoveBidRow(row[0]);
@@ -288,8 +292,9 @@ namespace QuantConnect.FTXBrokerage
 
                     orderBook.UpdateBidRow(row[0], row[1]);
                 }
-                foreach (var row in update.Asks)
+                for (var i = 0; i < update.Asks.Length; i++)
                 {
+                    var row = update.Asks[i];
                     if (row[1] == 0)
                     {
                         orderBook.RemoveAskRow(row[0]);
