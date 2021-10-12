@@ -220,7 +220,6 @@ namespace QuantConnect.FTXBrokerage
             var balances = _restApiClient.GetBalances()
                 .ToList();
 
-            //TODO: discuss negative balances (borrowed)
             balances = balances.Where(balance => balance.Total != 0).ToList();
 
             if (balances.Any() != true)
