@@ -34,6 +34,9 @@ namespace QuantConnect.FTXBrokerage
     /// </summary>
     public class FTXRestApiClient : IDisposable
     {
+        public const string RestApiUrl = "https://ftx.com/api";
+        public const string WsApiUrl = "wss://ftx.com/ws/";
+
         private readonly string _apiKey;
         private readonly string _apiSecret;
         private readonly HMACSHA256 _hashMaker;
@@ -75,7 +78,7 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="apiKey">api access key</param>
         /// <param name="apiSecret">api access token</param>
         public FTXRestApiClient(string apiKey, string apiSecret)
-            : this(new RestClient("https://ftx.com/api"), apiKey, apiSecret)
+            : this(new RestClient(RestApiUrl), apiKey, apiSecret)
         {
         }
 

@@ -221,7 +221,7 @@ namespace QuantConnect.FTXBrokerage
                         symbol,
                         trade.Time,
                         trade.Price,
-                        trade.Quantity);
+                        trade.Size);
                 }
             }
             catch (Exception e)

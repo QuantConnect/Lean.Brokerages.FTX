@@ -24,6 +24,5 @@ namespace QuantConnect.FTXBrokerage.Messages
         public decimal Size { get; set; }
         public OrderDirection Side { get; set; }
         public DateTime Time { get; set; }
-        public decimal Quantity => Side == OrderDirection.Buy ? Size : -Size;
     }
 }

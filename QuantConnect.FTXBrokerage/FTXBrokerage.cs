@@ -45,9 +45,6 @@ namespace QuantConnect.FTXBrokerage
     [BrokerageFactory(typeof(FTXBrokerageFactory))]
     public partial class FTXBrokerage : BaseWebsocketsBrokerage, IDataQueueHandler
     {
-        private const string RestApiUrl = "https://ftx.com/api";
-        private const string WsApiUrl = "wss://ftx.com/ws/";
-
         private bool _isAuthenticated;
 
         private readonly LiveNodePacket _job;
@@ -106,9 +103,9 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="aggregator">consolidate ticks</param>
         /// <param name="job">The live job packet</param>
         public FTXBrokerage(string apiKey, string apiSecret, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job) : base(
-            WsApiUrl,
+            FTXRestApiClient.WsApiUrl,
             new WebSocketClientWrapper(),
-            new RestClient(RestApiUrl),
+            new RestClient(FTXRestApiClient.RestApiUrl),
             apiKey,
             apiSecret,
             "FTX")
