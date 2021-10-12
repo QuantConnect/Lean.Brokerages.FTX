@@ -213,8 +213,7 @@ namespace QuantConnect.FTXBrokerage
         {
             try
             {
-                var securityType = _symbolMapper.GetBrokerageSecurityType(market);
-                var symbol = _symbolMapper.GetLeanSymbol(market, securityType, Market.FTX);
+                var symbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Market.FTX);
                 foreach (var trade in trades)
                 {
                     EmitTradeTick(
@@ -235,8 +234,7 @@ namespace QuantConnect.FTXBrokerage
         {
             try
             {
-                var securityType = _symbolMapper.GetBrokerageSecurityType(market);
-                var symbol = _symbolMapper.GetLeanSymbol(market, securityType, Market.FTX);
+                var symbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Market.FTX);
 
                 if (!_orderBooks.TryGetValue(symbol, out var orderBook))
                 {
@@ -273,8 +271,7 @@ namespace QuantConnect.FTXBrokerage
         {
             try
             {
-                var securityType = _symbolMapper.GetBrokerageSecurityType(market);
-                var symbol = _symbolMapper.GetLeanSymbol(market, securityType, Market.FTX);
+                var symbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Market.FTX);
 
                 if (!_orderBooks.TryGetValue(symbol, out var orderBook))
                 {
@@ -348,8 +345,7 @@ namespace QuantConnect.FTXBrokerage
                     return;
                 }
 
-                var securityType = _symbolMapper.GetBrokerageSecurityType(fill.Market);
-                var symbol = _symbolMapper.GetLeanSymbol(fill.Market, securityType, Market.FTX);
+                var symbol = _symbolMapper.GetLeanSymbol(fill.Market, SecurityType.Crypto, Market.FTX);
                 var fillPrice = fill.Price;
                 var fillQuantity = fill.Quantity;
                 var orderFee = new OrderFee(new CashAmount(Math.Abs(fill.Fee), fill.FeeCurrency));

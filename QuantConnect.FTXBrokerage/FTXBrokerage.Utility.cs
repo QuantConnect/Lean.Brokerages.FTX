@@ -28,8 +28,7 @@ namespace QuantConnect.FTXBrokerage
 
         private Orders.Order CreateOrder(Order ftxOrder)
         {
-            var symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market,
-                _symbolMapper.GetBrokerageSecurityType(ftxOrder.Market), Market.FTX);
+            var symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market, SecurityType.Crypto, Market.FTX);
             switch (ftxOrder.Type.LazyToUpper())
             {
                 case "LIMIT":
@@ -45,8 +44,7 @@ namespace QuantConnect.FTXBrokerage
 
         private Orders.Order CreateTriggerOrder(TriggerOrder ftxOrder)
         {
-            var symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market,
-                _symbolMapper.GetBrokerageSecurityType(ftxOrder.Market), Market.FTX);
+            var symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market, SecurityType.Crypto, Market.FTX);
             switch (ftxOrder.Type.LazyToUpper())
             {
                 case "STOP":
