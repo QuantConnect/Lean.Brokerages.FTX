@@ -61,7 +61,7 @@ namespace QuantConnect.FTXBrokerage
                     {
                         if (ftxOrder.OrderType.ToUpper() == "LIMIT")
                         {
-                            return new StopLimitOrder(leanSymbol, ftxOrder.Quantity, ftxOrder.TriggerPrice, ftxOrder.OrderPrice, ftxOrder.CreatedAt, stopTriggered: ftxOrder.Status.Equals("triggered", StringComparison.OrdinalIgnoreCase));
+                            return new StopLimitOrder(leanSymbol, ftxOrder.Quantity, ftxOrder.TriggerPrice, ftxOrder.OrderPrice, ftxOrder.CreatedAt);
                         }
 
                         return ftxOrder.OrderType.ToUpper() == "MARKET"
@@ -82,7 +82,6 @@ namespace QuantConnect.FTXBrokerage
                 case "NEW":
                     return OrderStatus.New;
 
-                case "TRIGGERED":
                 case "OPEN":
                     return order.FilledSize == 0
                         ? OrderStatus.Submitted
