@@ -14,9 +14,8 @@
 */
 
 using QuantConnect.Configuration;
-using QuantConnect.Util;
 using System;
-using System.Collections.Generic;
+using static QuantConnect.Configuration.ApplicationParser;
 
 namespace QuantConnect.FTXBrokerage.ToolBox
 {
@@ -65,27 +64,6 @@ namespace QuantConnect.FTXBrokerage.ToolBox
                         break;
                 }
             }
-        }
-
-        private static void PrintMessageAndExit(int exitCode = 0, string message = "")
-        {
-            if (!message.IsNullOrEmpty())
-            {
-                Console.WriteLine("\n" + message);
-            }
-            Console.WriteLine("\nUse the '--help' parameter for more information");
-            Console.WriteLine("Press any key to quit");
-            Console.ReadLine();
-            Environment.Exit(exitCode);
-        }
-
-        private static string GetParameterOrExit(IReadOnlyDictionary<string, object> optionsObject, string parameter)
-        {
-            if (!optionsObject.ContainsKey(parameter))
-            {
-                PrintMessageAndExit(1, "ERROR: REQUIRED parameter --" + parameter + "= is missing");
-            }
-            return optionsObject[parameter].ToString();
         }
     }
 }
