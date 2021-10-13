@@ -14,10 +14,12 @@
 */
 
 using QuantConnect.Brokerages;
+using QuantConnect.Configuration;
 using QuantConnect.Data;
 using QuantConnect.Data.Market;
 using QuantConnect.FTXBrokerage.Messages;
 using QuantConnect.Interfaces;
+using QuantConnect.Logging;
 using QuantConnect.Orders;
 using QuantConnect.Orders.Fees;
 using QuantConnect.Packets;
@@ -28,8 +30,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using QuantConnect.Configuration;
-using QuantConnect.Logging;
 using DateTime = System.DateTime;
 using HistoryRequest = QuantConnect.Data.HistoryRequest;
 using LimitOrder = QuantConnect.Orders.LimitOrder;
@@ -55,6 +55,8 @@ namespace QuantConnect.FTXBrokerage
         private readonly SymbolPropertiesDatabaseSymbolMapper _symbolMapper = new(Market.FTX);
         private readonly Timer _keepAliveTimer;
         private readonly FTXRestApiClient _restApiClient;
+
+        private const int MaximumSymbolsPerConnection = 256;
 
         /// <summary>
         /// Returns true if we're currently connected to the broker
@@ -114,12 +116,16 @@ namespace QuantConnect.FTXBrokerage
             _securityProvider = securityProvider;
             _job = job;
             _aggregator = aggregator;
-            var subscriptionManager = new EventBasedDataQueueHandlerSubscriptionManager();
-            subscriptionManager.SubscribeImpl += (s, t) =>
-            {
-                return SubscribeImpl(s);
-            };
-            subscriptionManager.UnsubscribeImpl += (s, t) => Unsubscribe(s);
+            var subscriptionManager = new BrokerageMultiWebSocketSubscriptionManager(
+                FTXRestApiClient.WsApiUrl,
+                MaximumSymbolsPerConnection,
+                maximumWebSocketConnections: 0,
+                null,
+                () => new WebSocketClientWrapper(),
+                Subscribe,
+                Unsubscribe,
+                OnStreamDataImpl,
+                webSocketConnectionDuration: TimeSpan.Zero);
 
             SubscriptionManager = subscriptionManager;
 
@@ -144,7 +150,7 @@ namespace QuantConnect.FTXBrokerage
 
             // Brokerage helper class to lock websocket message stream while executing an action, for example placing an order
             // avoid race condition with placing an order and getting filled events before finished placing
-            _messageHandler = new BrokerageConcurrentMessageHandler<WebSocketMessage>(OnMessageImpl);
+            _messageHandler = new BrokerageConcurrentMessageHandler<WebSocketMessage>(OnUserDataImpl);
 
             _restApiClient = new FTXRestApiClient(RestClient, apiKey, apiSecret);
         }
@@ -423,8 +429,8 @@ namespace QuantConnect.FTXBrokerage
             }
 
             _isAuthenticated = true;
-            _isAuthenticated &= SubscribeChannel("fills");
-            _isAuthenticated &= SubscribeChannel("orders");
+            _isAuthenticated &= SubscribeChannel(WebSocket, "fills");
+            _isAuthenticated &= SubscribeChannel(WebSocket, "orders");
         }
 
         /// <summary>
@@ -500,45 +506,8 @@ namespace QuantConnect.FTXBrokerage
         /// Adds the specified symbols to the subscription
         /// </summary>
         /// <param name="symbols">The symbols to be added keyed by SecurityType</param>
-        public override void Subscribe(IEnumerable<Symbol> symbols)
-        {
-            SubscribeImpl(symbols);
-        }
-
-        /// <summary>
-        /// Adds the specified symbols to the subscription
-        /// </summary>
-        /// <param name="symbols">The symbols to be added keyed by SecurityType</param>
-        private bool SubscribeImpl(IEnumerable<Symbol> symbols)
-        {
-            bool success = true;
-
-            foreach (var symbol in symbols)
-            {
-                success &= SubscribeChannel("trades", symbol);
-                success &= SubscribeChannel("orderbook", symbol);
-            }
-
-            return success;
-        }
-
-        /// <summary>
-        /// Removes the specified symbols to the subscription
-        /// </summary>
-        /// <param name="symbols">The symbols to be removed keyed by SecurityType</param>
-        private bool Unsubscribe(IEnumerable<Symbol> symbols)
-        {
-            bool success = true;
-
-            foreach (var symbol in symbols)
-            {
-                success &= UnsubscribeChannel("trades", symbol);
-                success &= UnsubscribeChannel("orderbook", symbol);
-            }
-
-            return success;
-        }
-
+        public override void Subscribe(IEnumerable<Symbol> symbols) { }
+        
         /// <summary>
         /// Handles websocket received messages
         /// </summary>

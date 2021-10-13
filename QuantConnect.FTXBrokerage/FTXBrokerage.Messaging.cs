@@ -26,6 +26,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
+using QuantConnect.Data.Fundamental;
 
 namespace QuantConnect.FTXBrokerage
 {
@@ -41,52 +42,6 @@ namespace QuantConnect.FTXBrokerage
         /// Locking object for the Ticks list in the data queue handler
         /// </summary>
         private readonly object _tickLocker = new();
-
-        private bool SubscribeChannel(string channel, Symbol symbol = null)
-        {
-            _onSubscribeEvent.Reset();
-
-            var payload = new Dictionary<string, object>()
-            {
-                {"op", "subscribe"},
-                { "channel", channel }
-            };
-
-            if (symbol != null)
-            {
-                payload.Add("market", _symbolMapper.GetBrokerageSymbol(symbol));
-            }
-
-            WebSocket.Send(JsonConvert.SerializeObject(payload, FTXRestApiClient.JsonSettings));
-
-            if (!_onSubscribeEvent.WaitOne(TimeSpan.FromSeconds(30)))
-            {
-                Log.Error($"FTXBrokerage.Subscribe(): Could not subscribe to {symbol?.Value}/{channel}.");
-                return false;
-            }
-
-            return true;
-        }
-
-        private bool UnsubscribeChannel(string channel, Symbol symbol)
-        {
-            _onUnsubscribeEvent.Reset();
-
-            WebSocket.Send(JsonConvert.SerializeObject(new
-            {
-                op = "unsubscribe",
-                channel,
-                market = _symbolMapper.GetBrokerageSymbol(symbol)
-            }, FTXRestApiClient.JsonSettings));
-
-            if (!_onUnsubscribeEvent.WaitOne(TimeSpan.FromSeconds(30)))
-            {
-                Log.Error($"FTXBrokerage.Unsubscribe(): Could not unsubscribe from {symbol.Value}/{channel}.");
-                return false;
-            }
-
-            return true;
-        }
 
         /// <summary>
         /// Subscribes to the authenticated channels (using an single streaming channel)
@@ -105,7 +60,83 @@ namespace QuantConnect.FTXBrokerage
             Log.Trace("FTXBrokerage.Auth(): Sent authentication request.");
         }
 
-        private void OnMessageImpl(WebSocketMessage webSocketMessage)
+        private void OnUserDataImpl(WebSocketMessage webSocketMessage)
+        {
+            OnMessageImpl(webSocketMessage, (eventType, payload) =>
+            {
+                switch (eventType)
+                {
+                    case "error":
+                        {
+                            if (payload["msg"]?.ToObject<string>() == "Already logged in")
+                            {
+                                _authResetEvent?.Set();
+                            }
+
+                            return;
+                        }
+                    case "update":
+                        {
+                            switch (payload["channel"]?.ToObject<string>()?.ToLowerInvariant())
+                            {
+                                case "fills":
+                                    {
+                                        OnOrderFill(payload.SelectToken("data")?.ToObject<Fill>());
+                                        return;
+                                    }
+                                case "orders":
+                                    {
+                                        OnOrderExecution(payload.SelectToken("data")?.ToObject<BaseOrder>());
+                                        return;
+                                    }
+                                default:
+                                    return;
+                            }
+                        }
+                }
+            });
+        }
+
+        private void OnStreamDataImpl(WebSocketMessage webSocketMessage)
+        {
+            OnMessageImpl(webSocketMessage, (eventType, payload) =>
+            {
+                switch (eventType)
+                {
+                    case "partial":
+                        {
+                            OnSnapshot(
+                                payload["market"]?.ToObject<string>(),
+                                payload["data"]?.ToObject<Snapshot>());
+                            return;
+                        }
+                    case "update":
+                        {
+                            switch (payload["channel"]?.ToObject<string>()?.ToLowerInvariant())
+                            {
+                                case "trades":
+                                    {
+                                        OnTrade(
+                                            payload.SelectToken("market")?.ToObject<string>(),
+                                            payload.SelectToken("data")?.ToObject<Trade[]>());
+                                        return;
+                                    }
+                                case "orderbook":
+                                    {
+                                        OnOrderbookUpdate(
+                                            payload.SelectToken("market")?.ToObject<string>(),
+                                            payload.SelectToken("data")?.ToObject<OrderbookUpdate>());
+                                        return;
+                                    }
+                                default:
+                                    return;
+                            }
+                        }
+                }
+            });
+        }
+
+        private void OnMessageImpl(WebSocketMessage webSocketMessage, Action<string, JObject> action)
         {
             var e = (WebSocketClientWrapper.TextMessage)webSocketMessage.Data;
             try
@@ -117,8 +148,12 @@ namespace QuantConnect.FTXBrokerage
 
                 var obj = JsonConvert.DeserializeObject<JObject>(e.Message, FTXRestApiClient.JsonSettings);
 
-                var objEventType = obj["type"];
-                switch (objEventType?.ToObject<string>()?.ToLowerInvariant())
+                var objEventType = obj?["type"]?.ToObject<string>()?.ToLowerInvariant();
+                if (string.IsNullOrEmpty(objEventType))
+                {
+                    throw new Exception("Cannot find websocket message type");
+                }
+                switch (objEventType)
                 {
                     case "pong":
                         {
@@ -144,68 +179,16 @@ namespace QuantConnect.FTXBrokerage
                             {
                                 _onSubscribeEvent.Set();
                             }
-                            if (obj["msg"]?.ToObject<string>() == "Already logged in")
-                            {
-                                _authResetEvent?.Set();
-                            }
-                            return;
-                        }
-
-                    case "update":
-                        {
-                            OnDataUpdate(obj);
-                            return;
-                        }
-
-                    case "partial":
-                        {
-                            OnSnapshot(
-                                obj["market"]?.ToObject<string>(),
-                                obj["data"]?.ToObject<Snapshot>());
-                            return;
-                        }
-
-                    default:
-                        {
-                            return;
+                            break;
                         }
                 }
+
+                action(objEventType, obj);
             }
             catch (Exception exception)
             {
                 OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, -1, $"Parsing wss message failed. Data: {e.Message} Exception: {exception}"));
                 throw;
-            }
-        }
-
-        private void OnDataUpdate(JObject obj)
-        {
-            switch (obj["channel"]?.ToObject<string>()?.ToLowerInvariant())
-            {
-                case "trades":
-                    {
-                        OnTrade(
-                            obj.SelectToken("market")?.ToObject<string>(),
-                            obj.SelectToken("data")?.ToObject<Trade[]>());
-                        return;
-                    }
-                case "orderbook":
-                    {
-                        OnOrderbookUpdate(
-                            obj.SelectToken("market")?.ToObject<string>(),
-                            obj.SelectToken("data")?.ToObject<OrderbookUpdate>());
-                        return;
-                    }
-                case "fills":
-                    {
-                        OnOrderFill(obj.SelectToken("data")?.ToObject<Fill>());
-                        return;
-                    }
-                case "orders":
-                    {
-                        OnOrderExecution(obj.SelectToken("data")?.ToObject<BaseOrder>());
-                        return;
-                    }
             }
         }
 

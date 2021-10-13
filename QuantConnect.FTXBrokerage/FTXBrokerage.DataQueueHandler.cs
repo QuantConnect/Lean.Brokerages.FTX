@@ -13,7 +13,10 @@
  * limitations under the License.
 */
 
+using Newtonsoft.Json;
+using QuantConnect.Brokerages;
 using QuantConnect.Data;
+using QuantConnect.Logging;
 using QuantConnect.Packets;
 using System;
 using System.Collections.Generic;
@@ -63,6 +66,64 @@ namespace QuantConnect.FTXBrokerage
         }
 
         #endregion
+
+        private bool Subscribe(IWebSocket webSocket, Symbol symbol)
+        {
+            return SubscribeChannel(webSocket, "trades", symbol)
+                   && SubscribeChannel(webSocket, "orderbook", symbol);
+        }
+
+        private bool Unsubscribe(IWebSocket webSocket, Symbol symbol)
+        {
+            return UnsubscribeChannel(webSocket, "trades", symbol)
+                   && UnsubscribeChannel(webSocket, "orderbook", symbol);
+        }
+
+        private bool SubscribeChannel(IWebSocket webSocket, string channel, Symbol symbol = null)
+        {
+            _onSubscribeEvent.Reset();
+
+            var payload = new Dictionary<string, object>()
+            {
+                {"op", "subscribe"},
+                { "channel", channel }
+            };
+
+            if (symbol != null)
+            {
+                payload.Add("market", _symbolMapper.GetBrokerageSymbol(symbol));
+            }
+
+            webSocket.Send(JsonConvert.SerializeObject(payload, FTXRestApiClient.JsonSettings));
+
+            if (!_onSubscribeEvent.WaitOne(TimeSpan.FromSeconds(30)))
+            {
+                Log.Error($"FTXBrokerage.Subscribe(): Could not subscribe to {symbol?.Value}/{channel}.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool UnsubscribeChannel(IWebSocket webSocket, string channel, Symbol symbol)
+        {
+            _onUnsubscribeEvent.Reset();
+
+            webSocket.Send(JsonConvert.SerializeObject(new
+            {
+                op = "unsubscribe",
+                channel,
+                market = _symbolMapper.GetBrokerageSymbol(symbol)
+            }, FTXRestApiClient.JsonSettings));
+
+            if (!_onUnsubscribeEvent.WaitOne(TimeSpan.FromSeconds(30)))
+            {
+                Log.Error($"FTXBrokerage.Unsubscribe(): Could not unsubscribe from {symbol.Value}/{channel}.");
+                return false;
+            }
+
+            return true;
+        }
 
         private bool CanSubscribe(Symbol symbol)
         {
