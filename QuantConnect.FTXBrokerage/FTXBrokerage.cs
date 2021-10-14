@@ -381,7 +381,7 @@ namespace QuantConnect.FTXBrokerage
                             }
 
                     }
-                    submitted = _restApiClient.CancelOrder(orderType, Convert.ToUInt64(order.BrokerId.First()));
+                    submitted = _restApiClient.CancelOrder(orderType, order.BrokerId.First().ConvertInvariant<ulong>());
 
 
                     OnOrderEvent(new OrderEvent(
@@ -418,7 +418,8 @@ namespace QuantConnect.FTXBrokerage
 
             base.Connect();
             _authResetEvent = new ManualResetEvent(false);
-            // we should've authenticated on socket open.
+            
+            // ftx doesn't send any response if "login" is succeded
             // here we try again and expect response {"type": "error", "code": 400, "msg": "Already logged in"}
             // to be sure that authenticated successfully
             Authenticate();

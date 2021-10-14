@@ -25,8 +25,10 @@ using QuantConnect.Securities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using QuantConnect.Data.Fundamental;
+using Order = QuantConnect.FTXBrokerage.Messages.Order;
 
 namespace QuantConnect.FTXBrokerage
 {
@@ -68,6 +70,7 @@ namespace QuantConnect.FTXBrokerage
                 {
                     case "error":
                         {
+                            // expect this error message as confirmation that subscribed to private channel
                             if (payload["msg"]?.ToObject<string>() == "Already logged in")
                             {
                                 _authResetEvent?.Set();
@@ -302,8 +305,14 @@ namespace QuantConnect.FTXBrokerage
                 var foundOrder = _orderProvider.GetOrderByBrokerageId(brokerId);
                 if (foundOrder == null)
                 {
-                    Log.Error($"OnOrderExecution(): order not found. BrokerId: {brokerId}, New Status: {order.Status}");
-                    return;
+                    foundOrder = FindRelatedTriggerOrder(order);
+
+                    if (foundOrder == null)
+                    {
+                        Log.Error(
+                            $"OnOrderExecution(): order not found. BrokerId: {brokerId}, New Status: {order.Status}");
+                        return;
+                    }
                 }
 
                 OrderStatus newStatus = ConvertOrderStatus(order);
@@ -329,8 +338,13 @@ namespace QuantConnect.FTXBrokerage
 
                 if (order == null)
                 {
-                    Log.Error($"EmitFillOrder(): order not found: BrokerId: {brokerId}");
-                    return;
+                    order = FindRelatedTriggerOrder(order);
+
+                    if (order == null)
+                    {
+                        Log.Error($"EmitFillOrder(): order not found: BrokerId: {brokerId}");
+                        return;
+                    }
                 }
 
                 var symbol = _symbolMapper.GetLeanSymbol(fill.Market, SecurityType.Crypto, Market.FTX);
@@ -428,6 +442,41 @@ namespace QuantConnect.FTXBrokerage
                 Log.Error(e);
                 throw;
             }
+        }
+
+        private Orders.Order FindRelatedTriggerOrder(BaseOrder order)
+        {
+            var unknownOrderId = order.Id.ConvertInvariant<ulong>();
+            var orderSymbol = _symbolMapper.GetLeanSymbol(order.Market, SecurityType.Crypto, Market.FTX);
+            var potentialOwnerConditionalOrders = _orderProvider
+                .GetOpenOrders(o => (o.Type == OrderType.StopLimit || o.Type == OrderType.StopMarket) && o.Symbol.Equals(orderSymbol));
+
+            for (var i = 0; i < potentialOwnerConditionalOrders.Count; i++)
+            {
+                var triggerOrder = potentialOwnerConditionalOrders[i];
+                if (triggerOrder.BrokerId.Count > 1)
+                {
+                    continue;
+                }
+
+                var conditionalOrderId = triggerOrder.BrokerId.First();
+                var triggers = _restApiClient.GetTriggers(conditionalOrderId.ConvertInvariant<ulong>());
+                for (var j = 0; j < triggers.Count; j++)
+                {
+                    if (!triggers[j].OrderId.HasValue)
+                    {
+                        continue;
+                    }
+
+                    triggerOrder.BrokerId.Add(triggers[j].OrderId.ToStringInvariant());
+                    if (triggers[j].OrderId.Value == unknownOrderId)
+                    {
+                        return triggerOrder;
+                    }
+                }
+            }
+
+            return null;
         }
     }
 }

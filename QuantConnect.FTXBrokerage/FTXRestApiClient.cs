@@ -209,6 +209,37 @@ namespace QuantConnect.FTXBrokerage
         }
 
         /// <summary>
+        /// Get trigger order triggers 
+        /// </summary>
+        /// <param name="conditionalOrderId">conditional order id</param>
+        /// <returns>Returns triggers for specific trigger orders</returns>
+        internal List<ConditionalOrderTrigger> GetTriggers(ulong conditionalOrderId)
+        {
+            var path = $"conditional_orders/{conditionalOrderId}/triggers";
+            var method = Method.GET;
+
+            var request = CreateSignedRequest(method, path);
+            var response = ExecuteWithRateLimit(request);
+
+            return EnsureSuccessAndParse<List<ConditionalOrderTrigger>>(response);
+        }
+
+        /// <summary>
+        /// Generates Authentication payload for Websocket API
+        /// </summary>
+        /// <returns>Returns object with required information</returns>
+        internal object GenerateAuthPayloadForWebSocketApi()
+        {
+            var signature = GenerateSignature("websocket_login", out var nonce);
+            return new
+            {
+                key = _apiKey,
+                sign = signature,
+                time = nonce
+            };
+        }
+
+        /// <summary>
         /// Dispose of current FTX Rest API client
         /// </summary>
         public void Dispose()
@@ -216,6 +247,8 @@ namespace QuantConnect.FTXBrokerage
             _restRateLimiter?.DisposeSafely();
             _hashMaker?.DisposeSafely();
         }
+
+        #region util
 
         private List<T> FetchOpenOrders<T>(string path)
         {
@@ -227,7 +260,6 @@ namespace QuantConnect.FTXBrokerage
             return EnsureSuccessAndParse<List<T>>(response);
         }
 
-        #region util
         /// <summary>
         /// Hitting rate limits will result in HTTP 429 errors.
         /// Non-order placement requests do not count towards rate limits.
@@ -297,21 +329,6 @@ namespace QuantConnect.FTXBrokerage
         {
             var payload = $"{method.ToString().ToUpper()}/api{url}{requestBody}";
             return GenerateSignature(payload, out nonce);
-        }
-
-        /// <summary>
-        /// Generates Authentication payload for Websocket API
-        /// </summary>
-        /// <returns>Returns object with required information</returns>
-        internal object GenerateAuthPayloadForWebSocketApi()
-        {
-            var signature = GenerateSignature("websocket_login", out var nonce);
-            return new
-            {
-                key = _apiKey,
-                sign = signature,
-                time = nonce
-            };
         }
 
         private string GenerateSignature(string payload, out long nonce)
