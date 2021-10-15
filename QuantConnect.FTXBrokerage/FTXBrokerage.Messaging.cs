@@ -305,7 +305,7 @@ namespace QuantConnect.FTXBrokerage
                 var foundOrder = _orderProvider.GetOrderByBrokerageId(brokerId);
                 if (foundOrder == null)
                 {
-                    foundOrder = FindRelatedTriggerOrder(order);
+                    foundOrder = FindRelatedTriggerOrder(order.Id.ConvertInvariant<ulong>(), order.Market);
 
                     if (foundOrder == null)
                     {
@@ -335,10 +335,9 @@ namespace QuantConnect.FTXBrokerage
                 var brokerId = fill.OrderId.ToStringInvariant();
 
                 var order = _orderProvider.GetOrderByBrokerageId(brokerId);
-
                 if (order == null)
                 {
-                    order = FindRelatedTriggerOrder(order);
+                    order = FindRelatedTriggerOrder(fill.OrderId.ConvertInvariant<ulong>(), fill.Market);
 
                     if (order == null)
                     {
@@ -357,19 +356,11 @@ namespace QuantConnect.FTXBrokerage
                 {
                     _fills.TryGetValue(order.Id, out var totalFillQuantity);
                     totalFillQuantity += fillQuantity;
-                    _fills.AddOrUpdate(order.Id, totalFillQuantity);
+                    _fills[order.Id] = totalFillQuantity;
 
                     status = totalFillQuantity == order.Quantity
                         ? OrderStatus.Filled
                         : OrderStatus.PartiallyFilled;
-                }
-
-                if (order.Direction == OrderDirection.Buy)
-                {
-                    // fees are debited in the base currency, so we have to subtract them from the filled quantity
-                    fillQuantity -= orderFee.Value.Amount;
-
-                    orderFee = new ModifiedFillQuantityOrderFee(orderFee.Value);
                 }
 
                 if (status == OrderStatus.Filled)
@@ -444,10 +435,9 @@ namespace QuantConnect.FTXBrokerage
             }
         }
 
-        private Orders.Order FindRelatedTriggerOrder(BaseOrder order)
+        private Orders.Order FindRelatedTriggerOrder(ulong unknownOrderId, string market)
         {
-            var unknownOrderId = order.Id.ConvertInvariant<ulong>();
-            var orderSymbol = _symbolMapper.GetLeanSymbol(order.Market, SecurityType.Crypto, Market.FTX);
+            var orderSymbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Market.FTX);
             var potentialOwnerConditionalOrders = _orderProvider
                 .GetOpenOrders(o => (o.Type == OrderType.StopLimit || o.Type == OrderType.StopMarket) && o.Symbol.Equals(orderSymbol));
 
