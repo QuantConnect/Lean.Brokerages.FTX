@@ -516,11 +516,6 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="e">message</param>
         public override void OnMessage(object sender, WebSocketMessage e)
         {
-            if (Log.DebuggingEnabled && e.Data is WebSocketClientWrapper.TextMessage message)
-            {
-                Log.Debug($"FTXBrokerage.OnMessage(): {message.Message}");
-            }
-
             _messageHandler.HandleNewMessage(e);
         }
 
