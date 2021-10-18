@@ -42,3 +42,4 @@ jobs:
         env:
           ftx-api-key: ${{ secrets.FTX_API_KEY }}
           ftx-api-secret: ${{ secrets.FTX_API_SECRET }}
+          data-folder: ../../../../Lean/Data/

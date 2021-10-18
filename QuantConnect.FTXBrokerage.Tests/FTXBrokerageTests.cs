@@ -50,6 +50,9 @@ namespace QuantConnect.FTXBrokerage.Tests
             {
                 Config.Set(_ftxApiConfigSecretName, Environment.GetEnvironmentVariable(_ftxApiConfigSecretName));
             }
+
+
+            Config.Set("data-folder", Environment.GetEnvironmentVariable("data-folder"));
         }
 
         protected override IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider)
