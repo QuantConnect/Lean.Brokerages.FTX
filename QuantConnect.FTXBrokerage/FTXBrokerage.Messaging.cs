@@ -435,6 +435,16 @@ namespace QuantConnect.FTXBrokerage
             }
         }
 
+        /// <summary>
+        /// Trigger order execution creates new simple (market or limit)
+        /// with different order id (not related to original trigger order id)
+        /// New order execution also doesn't have any information to original trigger order id,
+        /// so the only way to bind them is to use REST API
+        /// https://docs.ftx.com/#get-trigger-order-triggers
+        /// </summary>
+        /// <param name="unknownOrderId"></param>
+        /// <param name="market"></param>
+        /// <returns></returns>
         private Orders.Order FindRelatedTriggerOrder(ulong unknownOrderId, string market)
         {
             var orderSymbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Market.FTX);
@@ -458,7 +468,12 @@ namespace QuantConnect.FTXBrokerage
                         continue;
                     }
 
-                    triggerOrder.BrokerId.Add(triggers[j].OrderId.ToStringInvariant());
+                    var relatedOrderId = triggers[j].OrderId?.ToStringInvariant();
+                    if (!triggerOrder.BrokerId.Contains(relatedOrderId))
+                    {
+                        triggerOrder.BrokerId.Add(relatedOrderId);
+                    }
+
                     if (triggers[j].OrderId.Value == unknownOrderId)
                     {
                         return triggerOrder;
