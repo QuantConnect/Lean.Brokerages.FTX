@@ -15,17 +15,29 @@
 
 namespace QuantConnect.FTXBrokerage.Messages
 {
-    public class Snapshot
+    /// <summary>
+    /// Provides data about the orderbook's best 100 orders on either side
+    /// Can be used for both snapshot and updates
+    /// </summary>
+    public class Orderbook
     {
+        /// <summary>
+        /// Timestamp
+        /// </summary>
         public double Time { get; set; }
-        public decimal[][] Bids { get; set; }
-        public decimal[][] Asks { get; set; }
-    }
 
-    public class OrderbookUpdate
-    {
-        public double Time { get; set; }
+        /// <summary>
+        /// Formatted like that [[best price, size at price], [next next best price, size at price], ...]
+        /// If the bid size at price 5220.5 changed to 20.2, the bids field would be: [[5220.5, 20.2]]
+        /// If all bid at price 5223.5 got canceled, the bids field would contain: [[5233.5, 0]]
+        /// </summary>
         public decimal[][] Bids { get; set; }
+
+        /// <summary>
+        /// Formatted like that [[best price, size at price], [next next best price, size at price], ...]
+        /// If the asks size at price 5220.5 changed to 20.2, the asks field would be: [[5220.5, 20.2]]
+        /// If all asks at price 5223.5 got canceled, the asks field would contain: [[5233.5, 0]]
+        /// </summary>
         public decimal[][] Asks { get; set; }
     }
 }

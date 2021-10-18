@@ -110,7 +110,7 @@ namespace QuantConnect.FTXBrokerage
                         {
                             OnSnapshot(
                                 payload["market"]?.ToObject<string>(),
-                                payload["data"]?.ToObject<Snapshot>());
+                                payload["data"]?.ToObject<Orderbook>());
                             return;
                         }
                     case "update":
@@ -128,7 +128,7 @@ namespace QuantConnect.FTXBrokerage
                                     {
                                         OnOrderbookUpdate(
                                             payload.SelectToken("market")?.ToObject<string>(),
-                                            payload.SelectToken("data")?.ToObject<OrderbookUpdate>());
+                                            payload.SelectToken("data")?.ToObject<Orderbook>());
                                         return;
                                     }
                                 default:
@@ -217,7 +217,7 @@ namespace QuantConnect.FTXBrokerage
             }
         }
 
-        private void OnSnapshot(string market, Snapshot snapshot)
+        private void OnSnapshot(string market, Orderbook snapshot)
         {
             try
             {
@@ -256,7 +256,7 @@ namespace QuantConnect.FTXBrokerage
             }
         }
 
-        private void OnOrderbookUpdate(string market, OrderbookUpdate update)
+        private void OnOrderbookUpdate(string market, Orderbook update)
         {
             try
             {
