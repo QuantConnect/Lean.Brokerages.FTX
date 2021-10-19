@@ -29,8 +29,25 @@ jobs:
           repository: QuantConnect/Lean
           path: Lean
 
+      - name: Print directory
+        run: pwd
+
       - name: Move Lean
         run: mv Lean ../Lean
+
+      - name: Print directory
+        run: pwd
+
+      - name: Check file existence
+        id: check_files
+        uses: andstor/file-existence-action@v1
+        with:
+          files: "../Lean/Data/symbol-properties/symbol-properties-database.csv"
+
+      - name: File exists
+        if: steps.check_files.outputs.files_exists == 'true'
+        # Only runs if all of the files exists
+        run: echo All files exists!
 
       - name: Build
         run: dotnet build /p:Configuration=Release /v:quiet /p:WarningLevel=1 QuantConnect.FTXBrokerage.sln
@@ -38,6 +55,5 @@ jobs:
       - name: Run Tests
         run: dotnet test ./QuantConnect.FTXBrokerage.Tests/bin/Release/QuantConnect.FTXBrokerage.Tests.dll
         env:
-          ftx-api-key: ${{ secrets.FTX_API_KEY }}
-          ftx-api-secret: ${{ secrets.FTX_API_SECRET }}
-          data-folder: ../../../../Lean/Data/
+          QC_ftx-api-key: ${{ secrets.FTX_API_KEY }}
+          QC_ftx-api-secret: ${{ secrets.FTX_API_SECRET }}

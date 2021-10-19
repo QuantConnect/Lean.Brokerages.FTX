@@ -30,30 +30,10 @@ namespace QuantConnect.FTXBrokerage.Tests
     [TestFixture]
     public partial class FTXBrokerageTests : BrokerageTests
     {
-        private const string _ftxApiConfigKeyName = "ftx-api-key";
-        private const string _ftxApiConfigSecretName = "ftx-api-secret";
-
         private static readonly Symbol XRP_USDT = Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX);
 
         protected override Symbol Symbol => XRP_USDT;
         protected override SecurityType SecurityType => SecurityType.Crypto;
-
-        [OneTimeSetUp]
-        public void GlobalSetup()
-        {
-            if (!Config.TryGetValue<string>(_ftxApiConfigKeyName, out _))
-            {
-                Config.Set(_ftxApiConfigKeyName, Environment.GetEnvironmentVariable(_ftxApiConfigKeyName));
-            }
-
-            if (!Config.TryGetValue<string>(_ftxApiConfigSecretName, out _))
-            {
-                Config.Set(_ftxApiConfigSecretName, Environment.GetEnvironmentVariable(_ftxApiConfigSecretName));
-            }
-
-
-            Config.Set("data-folder", Environment.GetEnvironmentVariable("data-folder"));
-        }
 
         protected override IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider)
             => CreateBrokerage(orderProvider, securityProvider, new LiveNodePacket());
