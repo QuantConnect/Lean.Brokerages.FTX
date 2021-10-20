@@ -13,14 +13,11 @@
  * limitations under the License.
 */
 
-using System.Collections.Generic;
 using NUnit.Framework;
-using QuantConnect.Packets;
-using QuantConnect.Tests.Brokerages;
 
 namespace QuantConnect.FTXBrokerage.Tests
 {
-    [TestFixture, Ignore("Not implemented")]
+    [TestFixture]
     public class FTXBrokerageAdditionalTests
     {
 

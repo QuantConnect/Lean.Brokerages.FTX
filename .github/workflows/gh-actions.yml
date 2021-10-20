@@ -55,5 +55,5 @@ jobs:
       - name: Run Tests
         run: dotnet test ./QuantConnect.FTXBrokerage.Tests/bin/Release/QuantConnect.FTXBrokerage.Tests.dll
         env:
-          QC_ftx-api-key: ${{ secrets.FTX_API_KEY }}
-          QC_ftx-api-secret: ${{ secrets.FTX_API_SECRET }}
+          QC_FTX_API_KEY: ${{ secrets.FTX_API_KEY }}
+          QC_FTX_API_SECRET: ${{ secrets.FTX_API_SECRET }}
