@@ -209,7 +209,8 @@ namespace QuantConnect.FTXBrokerage
         }
 
         /// <summary>
-        /// Gets all open positions
+        /// Gets all open positions, not applicable for spot assets
+        /// https://docs.ftx.com/#get-positions works for futures only
         /// </summary>
         /// <returns></returns>
         public override List<Holding> GetAccountHoldings()
