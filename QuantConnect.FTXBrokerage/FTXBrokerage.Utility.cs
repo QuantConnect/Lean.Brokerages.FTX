@@ -59,14 +59,10 @@ namespace QuantConnect.FTXBrokerage
                     }
                 case "TAKE_PROFIT":
                     {
-                        if (ftxOrder.OrderType.ToUpper() == "LIMIT")
-                        {
-                            return new StopLimitOrder(leanSymbol, ftxOrder.Quantity, ftxOrder.TriggerPrice, ftxOrder.OrderPrice, ftxOrder.CreatedAt);
-                        }
-
-                        return ftxOrder.OrderType.ToUpper() == "MARKET"
-                            ? new StopMarketOrder(leanSymbol, ftxOrder.Quantity, ftxOrder.TriggerPrice, ftxOrder.CreatedAt)
-                            : null;
+                        // TAKE PROFIT is not currently supported, GH-6007
+                        OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, -1,
+                            "FTXBrokerage.GetOpenOrders: TAKE PROFIT order type is not currently supported"));
+                        return null;
                     }
                 default:
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, -1,
