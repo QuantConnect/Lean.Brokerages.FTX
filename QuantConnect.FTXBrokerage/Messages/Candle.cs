@@ -17,13 +17,34 @@ using System;
 
 namespace QuantConnect.FTXBrokerage.Messages
 {
+    /// <summary>
+    /// Describes historical prices.
+    /// </summary>
     public class Candle
     {
+        /// <summary>
+        /// Mark price at startTime
+        /// </summary>
         public decimal Open { get; set; }
+        /// <summary>
+        /// Mark price at the end of the window
+        /// </summary>
         public decimal Close { get; set; }
+        /// <summary>
+        /// Highest mark price over the window
+        /// </summary>
         public decimal High { get; set; }
+        /// <summary>
+        /// Lowest mark price over the window
+        /// </summary>
         public decimal Low { get; set; }
+        /// <summary>
+        /// Mark price at startTime
+        /// </summary>
         public DateTime StartTime { get; set; }
+        /// <summary>
+        /// Volume traded in the window
+        /// </summary>
         public decimal Volume { get; set; }
     }
 }

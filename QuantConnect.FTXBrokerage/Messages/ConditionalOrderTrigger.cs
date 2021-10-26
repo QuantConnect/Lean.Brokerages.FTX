@@ -17,11 +17,24 @@ using System;
 
 namespace QuantConnect.FTXBrokerage.Messages
 {
+    /// <summary>
+    /// Described trigger event for conditional order
+    /// https://docs.ftx.com/#get-trigger-order-triggers
+    /// </summary>
     public class ConditionalOrderTrigger
     {
+        /// <summary>
+        /// Reason for order failing to be placed, null if successful
+        /// </summary>
         public string Error { get; set; }
         public decimal? FilledSize { get; set; }
+        /// <summary>
+        /// null if order failed to place
+        /// </summary>
         public decimal? OrderSize { get; set; }
+        /// <summary>
+        /// null if order failed to place
+        /// </summary>
         public ulong? OrderId { get; set; }
         public DateTime Time { get; set; }
     }

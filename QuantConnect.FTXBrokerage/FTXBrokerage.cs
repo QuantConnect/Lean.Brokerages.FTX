@@ -472,18 +472,7 @@ namespace QuantConnect.FTXBrokerage
             }
 
             var period = request.Resolution.ToTimeSpan();
-
-            int[] resolutions = new[] { 15, 60, 300, 900, 3600, 14400 }
-                .Union(Enumerable.Repeat(86400, 30).Select((s, i) => s * i))
-                .ToArray();
             int resolutionInSeconds = (int)period.TotalSeconds;
-
-            if (Array.IndexOf(resolutions, resolutionInSeconds) == -1)
-            {
-                OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, "InvalidResolution",
-                    $"Resolution is not supported, no history returned. Options: 15, 60, 300, 900, 3600, 14400, 86400, or any multiple of 86400 up to 30*86400"));
-                yield break;
-            }
 
             foreach (var candle in _restApiClient.GetHistoricalPrices(_symbolMapper.GetBrokerageSymbol(request.Symbol), resolutionInSeconds, request.StartTimeUtc, request.EndTimeUtc))
             {
