@@ -156,7 +156,7 @@ namespace QuantConnect.FTXBrokerage
         {
             const int batchSize = 1000;
             var startTimeInSeconds = (ulong)Time.DateTimeToUnixTimeStamp(startTimeUtc);
-            var endTimeInSeconds = (ulong)Time.DateTimeToUnixTimeStamp(endTimeUtc);
+            var endTimeInSeconds = (ulong)Time.DateTimeToUnixTimeStamp(endTimeUtc.RoundDown(TimeSpan.FromSeconds(resolutionInSeconds)));
 
             var total = (endTimeInSeconds - startTimeInSeconds) / (ulong)resolutionInSeconds;
             if (total == 0)
