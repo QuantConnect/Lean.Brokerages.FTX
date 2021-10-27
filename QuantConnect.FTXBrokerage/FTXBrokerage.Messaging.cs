@@ -316,7 +316,7 @@ namespace QuantConnect.FTXBrokerage
                 }
 
                 OrderStatus newStatus = ConvertOrderStatus(order);
-                OnOrderEvent(new OrderEvent(foundOrder, DateTime.UtcNow, OrderFee.Zero, "FTX Cancel Order Event")
+                OnOrderEvent(new OrderEvent(foundOrder, DateTime.UtcNow, OrderFee.Zero, "FTX Order Event")
                 {
                     Status = newStatus
                 });

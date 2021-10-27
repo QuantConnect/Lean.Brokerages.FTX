@@ -117,7 +117,7 @@ namespace QuantConnect.FTXBrokerage
             _securityProvider = securityProvider;
             _job = job;
             _aggregator = aggregator;
-            var subscriptionManager = new BrokerageMultiWebSocketSubscriptionManager(
+            SubscriptionManager = new BrokerageMultiWebSocketSubscriptionManager(
                 FTXRestApiClient.WsApiUrl,
                 MaximumSymbolsPerConnection,
                 maximumWebSocketConnections: 0,
@@ -127,8 +127,6 @@ namespace QuantConnect.FTXBrokerage
                 Unsubscribe,
                 OnStreamDataImpl,
                 webSocketConnectionDuration: TimeSpan.Zero);
-
-            SubscriptionManager = subscriptionManager;
 
             // Send pings at regular intervals (every 15 seconds)
             _keepAliveTimer = new Timer
@@ -226,15 +224,8 @@ namespace QuantConnect.FTXBrokerage
         /// <returns>The current cash balance for each currency available for trading</returns>
         public override List<CashAmount> GetCashBalance()
         {
-            var balances = _restApiClient.GetBalances()
-                .ToList();
-
-            balances = balances.Where(balance => balance.Total != 0).ToList();
-
-            if (balances.Any() != true)
-                return new List<CashAmount>();
-
-            return balances
+            return _restApiClient.GetBalances()
+                .Where(balance => balance.Total != 0)
                 .Select(ConvertBalance)
                 .ToList();
         }
