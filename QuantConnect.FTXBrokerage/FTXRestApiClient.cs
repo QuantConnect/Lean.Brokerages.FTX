@@ -154,7 +154,7 @@ namespace QuantConnect.FTXBrokerage
         /// <returns>An enumerable of bars covering the span specified in the request</returns>
         internal Candle[] GetHistoricalPrices(string market, int resolutionInSeconds, DateTime startTimeUtc, DateTime endTimeUtc)
         {
-            var batchSize = 1000;
+            const int batchSize = 1000;
             var startTimeInSeconds = (ulong)Time.DateTimeToUnixTimeStamp(startTimeUtc);
             var endTimeInSeconds = (ulong)Time.DateTimeToUnixTimeStamp(endTimeUtc);
 
@@ -163,9 +163,10 @@ namespace QuantConnect.FTXBrokerage
             {
                 return Array.Empty<Candle>();
             }
-            // ftx returns last candle with startTime equals to end_time of the request
-            Candle[] candles = new Candle[total + 1];
 
+            Candle[] candles = new Candle[total];
+            // ftx returns last candle with startTime equals to end_time of the request
+            endTimeInSeconds -= (ulong)resolutionInSeconds;
             var basePath = $"/markets/{market}/candles?resolution={resolutionInSeconds}";
             var batchEndTimeInSeconds = Math.Min(endTimeInSeconds, startTimeInSeconds + (ulong)((batchSize - 1) * resolutionInSeconds));
             for (int i = 0; ; i++)
