@@ -57,6 +57,7 @@ namespace QuantConnect.FTXBrokerage
         private readonly FTXRestApiClient _restApiClient;
 
         private const int MaximumSymbolsPerConnection = 256;
+        private const int HistoricalDataPerRequestLimit = 1000;
 
         /// <summary>
         /// Returns true if we're currently connected to the broker
@@ -419,7 +420,7 @@ namespace QuantConnect.FTXBrokerage
 
             base.Connect();
             _authResetEvent = new ManualResetEvent(false);
-            
+
             // ftx doesn't send any response if "login" is succeded
             // here we try again and expect response {"type": "error", "code": 400, "msg": "Already logged in"}
             // to be sure that authenticated successfully
@@ -471,23 +472,49 @@ namespace QuantConnect.FTXBrokerage
                 yield break;
             }
 
+            var brokerageSymbol = _symbolMapper.GetBrokerageSymbol(request.Symbol);
             var period = request.Resolution.ToTimeSpan();
-            int resolutionInSeconds = (int)period.TotalSeconds;
+            var resolutionInSeconds = (int)period.TotalSeconds;
+            //ftx returns last candle with startTime equals to end_time of request
+            var lastRequestedBarEndTime = request.EndTimeUtc.RoundDown(period).Add(-period);
 
-            foreach (var candle in _restApiClient.GetHistoricalPrices(_symbolMapper.GetBrokerageSymbol(request.Symbol), resolutionInSeconds, request.StartTimeUtc, request.EndTimeUtc))
+            // Define current api request's start and end dates
+            var currentStartTime = request.StartTimeUtc.RoundDown(period);
+            var currentEndTime = lastRequestedBarEndTime;
+
+            // Check if need to use pagination 
+            var requestBarsCount = (currentEndTime - currentStartTime).Ticks / period.Ticks + 1;
+            if (requestBarsCount > HistoricalDataPerRequestLimit)
             {
-                yield return new TradeBar()
+                currentEndTime = currentStartTime + TimeSpan.FromTicks(period.Ticks * (HistoricalDataPerRequestLimit - 1));
+            }
+
+            // Fetch the data
+            while (currentStartTime < lastRequestedBarEndTime)
+            {
+                Log.Debug($"FTXBrokerage.GetHistory(): Fetching data from {currentStartTime:g} to {currentEndTime:g}");
+
+                foreach (var candle in _restApiClient.GetHistoricalPrices(brokerageSymbol, resolutionInSeconds, currentStartTime, currentEndTime))
                 {
-                    Time = candle.StartTime,
-                    Symbol = request.Symbol,
-                    Low = candle.Low,
-                    High = candle.High,
-                    Open = candle.Open,
-                    Close = candle.Close,
-                    Volume = candle.Volume,
-                    DataType = MarketDataType.TradeBar,
-                    Period = period
-                };
+                    yield return new TradeBar()
+                    {
+                        Time = candle.StartTime,
+                        Symbol = request.Symbol,
+                        Low = candle.Low,
+                        High = candle.High,
+                        Open = candle.Open,
+                        Close = candle.Close,
+                        Volume = candle.Volume,
+                        DataType = MarketDataType.TradeBar,
+                        Period = period
+                    };
+                }
+
+                currentStartTime = currentEndTime + TimeSpan.FromTicks(period.Ticks);
+                currentEndTime = currentStartTime + TimeSpan.FromTicks(period.Ticks * (HistoricalDataPerRequestLimit - 1));
+                currentEndTime = currentEndTime > lastRequestedBarEndTime
+                    ? lastRequestedBarEndTime
+                    : currentEndTime;
             }
         }
 
@@ -498,7 +525,7 @@ namespace QuantConnect.FTXBrokerage
         /// </summary>
         /// <param name="symbols">The symbols to be added keyed by SecurityType</param>
         public override void Subscribe(IEnumerable<Symbol> symbols) { }
-        
+
         /// <summary>
         /// Handles websocket received messages
         /// </summary>

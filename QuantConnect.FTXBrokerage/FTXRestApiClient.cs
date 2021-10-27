@@ -154,44 +154,16 @@ namespace QuantConnect.FTXBrokerage
         /// <returns>An enumerable of bars covering the span specified in the request</returns>
         internal Candle[] GetHistoricalPrices(string market, int resolutionInSeconds, DateTime startTimeUtc, DateTime endTimeUtc)
         {
-            const int batchSize = 1000;
-            var startTimeInSeconds = (ulong)Time.DateTimeToUnixTimeStamp(startTimeUtc);
-            var endTimeInSeconds = (ulong)Time.DateTimeToUnixTimeStamp(endTimeUtc.RoundDown(TimeSpan.FromSeconds(resolutionInSeconds)));
+            var path = $"/markets/{market}/candles?resolution={resolutionInSeconds}"
+                       + $"&start_time={(ulong)(Time.DateTimeToUnixTimeStamp(startTimeUtc))}"
+                       + $"&end_time={(ulong)(Time.DateTimeToUnixTimeStamp(endTimeUtc))}";
 
-            var total = (endTimeInSeconds - startTimeInSeconds) / (ulong)resolutionInSeconds;
-            if (total == 0)
-            {
-                return Array.Empty<Candle>();
-            }
+            var request = CreateRequest(Method.GET, path);
+            var response = ExecuteRestRequest(request);
 
-            Candle[] candles = new Candle[total];
-            // ftx returns last candle with startTime equals to end_time of the request
-            endTimeInSeconds -= (ulong)resolutionInSeconds;
-            var basePath = $"/markets/{market}/candles?resolution={resolutionInSeconds}";
-            var batchEndTimeInSeconds = Math.Min(endTimeInSeconds, startTimeInSeconds + (ulong)((batchSize - 1) * resolutionInSeconds));
-            for (int i = 0; ; i++)
-            {
-                var request = CreateRequest(Method.GET, $"{basePath}&start_time={startTimeInSeconds}&end_time={batchEndTimeInSeconds}");
-                var response = ExecuteRestRequest(request);
+            var result = EnsureSuccessAndParse<Candle[]>(response);
 
-                var result = EnsureSuccessAndParse<Candle[]>(response);
-                if (result.Length == 0)
-                {
-                    break;
-                }
-
-                Array.Copy(result, 0, candles, batchSize * i, result.Length);
-                if (result.Length < batchSize)
-                {
-                    break;
-                }
-
-                // bypass final bar from last round-trip
-                startTimeInSeconds = batchEndTimeInSeconds + (ulong)resolutionInSeconds;
-                batchEndTimeInSeconds = Math.Min(batchEndTimeInSeconds + (ulong)(batchSize * resolutionInSeconds), endTimeInSeconds);
-            }
-
-            return candles;
+            return result;
         }
 
         /// <summary>
