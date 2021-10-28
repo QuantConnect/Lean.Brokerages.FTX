@@ -48,12 +48,12 @@ namespace QuantConnect.FTXBrokerage
     {
         private bool _isAuthenticated;
 
-        private LiveNodePacket _job;
+        private string _exchangeName;
         private IDataAggregator _aggregator;
         private IOrderProvider _orderProvider;
         private ISecurityProvider _securityProvider;
         private BrokerageConcurrentMessageHandler<WebSocketMessage> _messageHandler;
-        private readonly SymbolPropertiesDatabaseSymbolMapper _symbolMapper = new(Market.FTX);
+        private readonly SymbolPropertiesDatabaseSymbolMapper _symbolMapper;
         private Timer _keepAliveTimer;
         private FTXRestApiClient _restApiClient;
 
@@ -85,14 +85,15 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="securityProvider">The security provider</param>
         /// <param name="aggregator">data aggregator</param>
         /// <param name="job">The job packet</param>
-        public FTXBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job) : this(
+        public FTXBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job, string exchangeName) : this(
             Config.Get("ftx-api-key"),
             Config.Get("ftx-api-secret"),
             Config.Get("ftx-account-tier"),
             orderProvider,
             securityProvider,
             aggregator,
-            job)
+            job,
+            exchangeName)
         { }
 
         /// <summary>
@@ -111,7 +112,8 @@ namespace QuantConnect.FTXBrokerage
             algorithm?.Transactions,
             algorithm?.Portfolio,
             aggregator,
-            job)
+            job,
+            exchangeName)
         { }
 
         /// <summary>
@@ -124,8 +126,8 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="securityProvider">The security provider used to give access to algorithm securities</param>
         /// <param name="aggregator">consolidate ticks</param>
         /// <param name="job">The live job packet</param>
-        public FTXBrokerage(string apiKey, string apiSecret, string accountTier, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job) 
-            : base("FTX")
+        public FTXBrokerage(string apiKey, string apiSecret, string accountTier, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job) : base(
+            exchangeName)
         {
             Initialize(apiKey, apiSecret, accountTier, orderProvider, securityProvider, aggregator, job);
         }
@@ -149,7 +151,7 @@ namespace QuantConnect.FTXBrokerage
 
             foreach (var ftxOrder in openOrders)
             {
-                var symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market, SecurityType.Crypto, Market.FTX);
+                var symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market, SecurityType.Crypto, Name);
                 Orders.Order leanOrder;
                 switch (ftxOrder)
                 {

@@ -26,6 +26,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using QuantConnect.Configuration;
 
 namespace QuantConnect.FTXBrokerage
 {
@@ -34,6 +35,8 @@ namespace QuantConnect.FTXBrokerage
     /// </summary>
     public class FTXRestApiClient : IDisposable
     {
+        public static readonly string RestApiUrl = Config.Get("ftx-api-url", "https://ftx.com/api");
+        public static readonly string WsApiUrl = Config.Get("ftx-websocket-url", "wss://ftx.com/ws/");
         private static readonly Dictionary<string, int> Tier2RateLimit = new(StringComparer.OrdinalIgnoreCase)
         {
             { "Tier1", 6 },
@@ -50,8 +53,6 @@ namespace QuantConnect.FTXBrokerage
             { "MM3", 30 }
         };
 
-        public const string RestApiUrl = "https://ftx.com/api";
-        public const string WsApiUrl = "wss://ftx.com/ws/";
 
         private readonly string _apiKey;
         private readonly string _apiSecret;

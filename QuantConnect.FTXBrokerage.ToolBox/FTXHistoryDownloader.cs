@@ -33,13 +33,20 @@ namespace QuantConnect.FTXBrokerage.ToolBox
     public class FTXHistoryDownloader : IDataDownloader
     {
         private readonly FTXBrokerage _brokerage;
-        private readonly SymbolPropertiesDatabaseSymbolMapper _symbolMapper = new(Market.FTX);
+        private readonly SymbolPropertiesDatabaseSymbolMapper _symbolMapper;
+        private readonly string _market;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FTXDataDownloader"/> class
         /// </summary>
-        public FTXHistoryDownloader()
+        public FTXHistoryDownloader(string market = Market.FTX)
         {
+            _market = market;
+            _symbolMapper = new(_market);
+            if (market == Market.FTXUS)
+            {
+                Config.Set("ftx-api-url", "https://ftx.us/api");
+            }
             _brokerage = new FTXBrokerage(string.Empty, string.Empty, "Tier1", null, null, null);
         }
 
@@ -96,10 +103,10 @@ namespace QuantConnect.FTXBrokerage.ToolBox
         /// <returns></returns>
         private Symbol GetSymbol(string ticker)
         {
-            return _symbolMapper.GetLeanSymbol(ticker, SecurityType.Crypto, Market.FTX);
+            return _symbolMapper.GetLeanSymbol(ticker, SecurityType.Crypto, _market);
         }
 
-        public static void DownloadHistory(List<string> tickers, string resolution, string securityType, DateTime fromDate, DateTime toDate)
+        public static void DownloadHistory(List<string> tickers, string resolution, string securityType, DateTime fromDate, DateTime toDate, string market = Market.FTX)
         {
             if (resolution.IsNullOrEmpty() || tickers.IsNullOrEmpty())
             {
@@ -115,8 +122,8 @@ namespace QuantConnect.FTXBrokerage.ToolBox
 
                 // Load settings from config.json
                 var dataDirectory = Config.Get("data-folder", Globals.DataFolder);
-
-                var downloader = new FTXHistoryDownloader();
+                
+                var downloader = new FTXHistoryDownloader(market);
 
                 foreach (var ticker in tickers)
                 {

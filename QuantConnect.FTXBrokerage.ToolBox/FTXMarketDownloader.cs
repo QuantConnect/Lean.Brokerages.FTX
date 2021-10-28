@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using QuantConnect.Configuration;
 
 namespace QuantConnect.FTXBrokerage.ToolBox
 {
@@ -30,7 +31,16 @@ namespace QuantConnect.FTXBrokerage.ToolBox
         /// <summary>
         /// Market name
         /// </summary>
-        public string Market => QuantConnect.Market.FTX;
+        public string Market { get; private set; }
+
+        public FTXMarketDownloader(string market = QuantConnect.Market.FTX)
+        {
+            Market = market;
+            if (market == QuantConnect.Market.FTXUS)
+            {
+                Config.Set("ftx-api-url", "https://ftx.us/api");
+            }
+        }
 
         /// <summary>
         /// Pulling data from a remote source
@@ -45,16 +55,16 @@ namespace QuantConnect.FTXBrokerage.ToolBox
             foreach (var symbol in exchangeInfo.Where(s => s.Type.Equals("spot")).OrderBy(x => x.Name))
             {
                 var leanSymbolName = symbol.Name.Replace("/", "");
-                yield return $"ftx,{leanSymbolName},crypto,{symbol.Name},{symbol.QuoteCurrency},1,{symbol.PriceIncrement.ToStringInvariant()},{symbol.SizeIncrement.ToStringInvariant()},{symbol.Name},{symbol.MinProvideSize.ToStringInvariant()}";
+                yield return $"{Market},{leanSymbolName},crypto,{symbol.Name},{symbol.QuoteCurrency},1,{symbol.PriceIncrement.ToStringInvariant()},{symbol.SizeIncrement.ToStringInvariant()},{symbol.Name},{symbol.MinProvideSize.ToStringInvariant()}";
             }
         }
 
         /// <summary>
         /// Endpoint for downloading exchange info
         /// </summary>
-        public static void ExchangeInfoDownloader()
+        public static void ExchangeInfoDownloader(string market = QuantConnect.Market.FTX)
         {
-            new ExchangeInfoUpdater(new FTXMarketDownloader())
+            new ExchangeInfoUpdater(new FTXMarketDownloader(market))
                 .Run();
         }
     }

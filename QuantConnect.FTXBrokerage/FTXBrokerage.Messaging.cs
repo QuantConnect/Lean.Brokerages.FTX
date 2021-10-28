@@ -198,7 +198,7 @@ namespace QuantConnect.FTXBrokerage
         {
             try
             {
-                var symbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Market.FTX);
+                var symbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Name);
                 for (int i = 0; i < trades.Length; i++)
                 {
                     var trade = trades[i];
@@ -220,7 +220,7 @@ namespace QuantConnect.FTXBrokerage
         {
             try
             {
-                var symbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Market.FTX);
+                var symbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Name);
 
                 if (!_orderBooks.TryGetValue(symbol, out var orderBook))
                 {
@@ -259,7 +259,7 @@ namespace QuantConnect.FTXBrokerage
         {
             try
             {
-                var symbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Market.FTX);
+                var symbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Name);
 
                 if (!_orderBooks.TryGetValue(symbol, out var orderBook))
                 {
@@ -345,7 +345,7 @@ namespace QuantConnect.FTXBrokerage
                     }
                 }
 
-                var symbol = _symbolMapper.GetLeanSymbol(fill.Market, SecurityType.Crypto, Market.FTX);
+                var symbol = _symbolMapper.GetLeanSymbol(fill.Market, SecurityType.Crypto, Name);
                 var fillPrice = fill.Price;
                 var fillQuantity = fill.Quantity;
                 var orderFee = new OrderFee(new CashAmount(Math.Abs(fill.Fee), fill.FeeCurrency));
@@ -446,7 +446,7 @@ namespace QuantConnect.FTXBrokerage
         /// <returns></returns>
         private Orders.Order FindRelatedTriggerOrder(ulong eventOrderId, string market)
         {
-            var orderSymbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Market.FTX);
+            var orderSymbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Name);
 
             foreach (var (conditionalOrderId, triggerOrder) in _stopCachedOrderIDs)
             {
