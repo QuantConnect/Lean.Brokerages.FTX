@@ -456,24 +456,30 @@ namespace QuantConnect.FTXBrokerage
                 var triggerOrder = potentialOwnerConditionalOrders[i];
                 if (triggerOrder.BrokerId.Count > 1)
                 {
+                    // we already matched original trigger order with standard order
+                    // can skip
                     continue;
                 }
 
                 var conditionalOrderId = triggerOrder.BrokerId.First();
+                // fetch all triggers for trigger order (stop order)
                 var triggers = _restApiClient.GetTriggers(conditionalOrderId.ConvertInvariant<ulong>());
                 for (var j = 0; j < triggers.Count; j++)
                 {
                     if (!triggers[j].OrderId.HasValue)
                     {
+                        // if order failed to place
                         continue;
                     }
 
+                    // update broker id for each trigger order
                     var relatedOrderId = triggers[j].OrderId?.ToStringInvariant();
                     if (!triggerOrder.BrokerId.Contains(relatedOrderId))
                     {
                         triggerOrder.BrokerId.Add(relatedOrderId);
                     }
 
+                    // we found trigger with orderId matched to new order
                     if (triggers[j].OrderId.Value == unknownOrderId)
                     {
                         return triggerOrder;
