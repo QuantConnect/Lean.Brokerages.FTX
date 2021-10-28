@@ -20,6 +20,7 @@ using QuantConnect.Lean.Engine.HistoricalData;
 using QuantConnect.Logging;
 using QuantConnect.Securities;
 using System;
+using System.Linq;
 using Moq;
 using QuantConnect.Brokerages;
 using QuantConnect.Interfaces;
@@ -126,7 +127,9 @@ namespace QuantConnect.FTXBrokerage.Tests
                     tickType)
             };
 
-            foreach (var slice in historyProvider.GetHistory(requests, TimeZones.Utc))
+
+            var historyArray = historyProvider.GetHistory(requests, TimeZones.Utc).ToArray();
+            foreach (var slice in historyArray)
             {
                 if (resolution == Resolution.Tick)
                 {
@@ -146,6 +149,17 @@ namespace QuantConnect.FTXBrokerage.Tests
             }
 
             Log.Trace("Data points retrieved: " + historyProvider.DataPointCount);
+
+            if (historyProvider.DataPointCount > 0)
+            {
+                // Ordered by time
+                Assert.That(historyArray, Is.Ordered.By("Time"));
+
+                // No repeating bars
+                var timesArray = historyArray.Select(x => x.Time).ToArray();
+                Assert.AreEqual(timesArray.Length, timesArray.Distinct().Count());
+            }
+
             return historyProvider.DataPointCount;
         }
     }

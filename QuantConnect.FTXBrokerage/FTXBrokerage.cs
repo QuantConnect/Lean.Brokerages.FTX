@@ -65,6 +65,15 @@ namespace QuantConnect.FTXBrokerage
         public override bool IsConnected => WebSocket.IsOpen && _isAuthenticated;
 
         /// <summary>
+        /// Parameterless constructor for brokerage
+        /// </summary>
+        /// <remarks>This parameterless constructor is required for brokerages implementing <see cref="IDataQueueHandler"/></remarks>
+        public FTXBrokerage()
+            : this(null, null, Composer.Instance.GetPart<IDataAggregator>(), null)
+        {
+        }
+
+        /// <summary>
         /// Creates a new <see cref="FTXBrokerage"/> from the specified values retrieving data from configuration file
         /// </summary>
         /// <param name="orderProvider">The order provider</param>

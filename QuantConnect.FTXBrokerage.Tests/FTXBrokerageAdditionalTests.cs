@@ -14,12 +14,19 @@
 */
 
 using NUnit.Framework;
+using QuantConnect.Interfaces;
+using QuantConnect.Util;
 
 namespace QuantConnect.FTXBrokerage.Tests
 {
     [TestFixture]
     public class FTXBrokerageAdditionalTests
     {
-
+        [Test]
+        public void ParameterlessConstructorComposerUsage()
+        {
+            var brokerage = Composer.Instance.GetExportedValueByTypeName<IDataQueueHandler>("FTXBrokerage");
+            Assert.IsNotNull(brokerage);
+        }
     }
 }
