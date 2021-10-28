@@ -81,7 +81,11 @@ namespace QuantConnect.FTXBrokerage
 
         private bool SubscribeChannel(IWebSocket webSocket, string channel, Symbol symbol = null)
         {
-            _onSubscribeEvent.Reset();
+            if (!_webSocketResetEvents.TryGetValue(webSocket, out var onSubscribeEvent))
+            {
+                throw new Exception("FTXBrokerage.SubscribeChannel(): could not subscribe to channel");
+            }
+            onSubscribeEvent.Reset();
 
             var payload = new Dictionary<string, object>()
             {
@@ -96,9 +100,9 @@ namespace QuantConnect.FTXBrokerage
 
             webSocket.Send(JsonConvert.SerializeObject(payload, FTXRestApiClient.JsonSettings));
 
-            if (!_onSubscribeEvent.WaitOne(TimeSpan.FromSeconds(30)))
+            if (!onSubscribeEvent.WaitOne(TimeSpan.FromSeconds(30)))
             {
-                Log.Error($"FTXBrokerage.Subscribe(): Could not subscribe to {symbol?.Value}/{channel}.");
+                Log.Error($"FTXBrokerage.SubscribeChannel(): Could not subscribe to {symbol?.Value}/{channel}.");
                 return false;
             }
 
@@ -107,7 +111,11 @@ namespace QuantConnect.FTXBrokerage
 
         private bool UnsubscribeChannel(IWebSocket webSocket, string channel, Symbol symbol)
         {
-            _onUnsubscribeEvent.Reset();
+            if (!_webSocketResetEvents.TryGetValue(webSocket, out var onUnsubscribeEvent))
+            {
+                throw new Exception("FTXBrokerage.UnsubscribeChannel(): could not unsubscribe from channel");
+            }
+            onUnsubscribeEvent.Reset();
 
             webSocket.Send(JsonConvert.SerializeObject(new
             {
@@ -116,7 +124,7 @@ namespace QuantConnect.FTXBrokerage
                 market = _symbolMapper.GetBrokerageSymbol(symbol)
             }, FTXRestApiClient.JsonSettings));
 
-            if (!_onUnsubscribeEvent.WaitOne(TimeSpan.FromSeconds(30)))
+            if (!onUnsubscribeEvent.WaitOne(TimeSpan.FromSeconds(30)))
             {
                 Log.Error($"FTXBrokerage.Unsubscribe(): Could not unsubscribe from {symbol.Value}/{channel}.");
                 return false;

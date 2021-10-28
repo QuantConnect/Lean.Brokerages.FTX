@@ -131,7 +131,12 @@ namespace QuantConnect.FTXBrokerage
                 MaximumSymbolsPerConnection,
                 maximumWebSocketConnections: 0,
                 null,
-                () => new WebSocketClientWrapper(),
+                () =>
+                {
+                    var webSocket = new WebSocketClientWrapper();
+                    _webSocketResetEvents.AddOrUpdate(webSocket, new ManualResetEvent(false));
+                    return webSocket;
+                },
                 Subscribe,
                 Unsubscribe,
                 OnStreamDataImpl,
@@ -161,6 +166,7 @@ namespace QuantConnect.FTXBrokerage
             _messageHandler = new BrokerageConcurrentMessageHandler<WebSocketMessage>(OnUserDataImpl);
 
             _restApiClient = new FTXRestApiClient(RestClient, apiKey, apiSecret);
+            _webSocketResetEvents.AddOrUpdate(WebSocket, new ManualResetEvent(false));
         }
 
         #region Brokerage
@@ -541,8 +547,11 @@ namespace QuantConnect.FTXBrokerage
         /// </summary>
         public override void Dispose()
         {
-            _onSubscribeEvent.DisposeSafely();
-            _onUnsubscribeEvent.DisposeSafely();
+            foreach (var onSubscribeEvent in _webSocketResetEvents.Values)
+            {
+                onSubscribeEvent.DisposeSafely();
+            }
+
             _authResetEvent?.DisposeSafely();
             _keepAliveTimer?.DisposeSafely();
             _restApiClient?.DisposeSafely();

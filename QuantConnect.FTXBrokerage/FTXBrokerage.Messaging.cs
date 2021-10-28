@@ -34,8 +34,7 @@ namespace QuantConnect.FTXBrokerage
 {
     public partial class FTXBrokerage
     {
-        private readonly ManualResetEvent _onSubscribeEvent = new(false);
-        private readonly ManualResetEvent _onUnsubscribeEvent = new(false);
+        private readonly ConcurrentDictionary<IWebSocket, ManualResetEvent> _webSocketResetEvents = new();
         private ManualResetEvent _authResetEvent;
         private readonly ConcurrentDictionary<Symbol, DefaultOrderBook> _orderBooks = new();
         private readonly ConcurrentDictionary<int, decimal> _fills = new();
@@ -165,13 +164,13 @@ namespace QuantConnect.FTXBrokerage
 
                     case "subscribed":
                         {
-                            _onSubscribeEvent.Set();
+                            _webSocketResetEvents[webSocketMessage.WebSocket].Set();
                             return;
                         }
 
                     case "unsubscribed":
                         {
-                            _onUnsubscribeEvent.Set();
+                            _webSocketResetEvents[webSocketMessage.WebSocket].Set();
                             return;
                         }
 
@@ -180,7 +179,7 @@ namespace QuantConnect.FTXBrokerage
                             // status code 400 - already subscribed
                             if (obj["msg"]?.ToObject<string>() == "Already subscribed")
                             {
-                                _onSubscribeEvent.Set();
+                                _webSocketResetEvents[webSocketMessage.WebSocket].Set();
                             }
                             break;
                         }
