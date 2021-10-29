@@ -34,12 +34,29 @@ namespace QuantConnect.FTXBrokerage
     /// </summary>
     public class FTXRestApiClient : IDisposable
     {
+        private static readonly Dictionary<string, int> Tier2RateLimit = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Tier1", 6 },
+            { "Tier2", 6 },
+            { "Tier3", 6 },
+            { "Tier4", 6 },
+            { "Tier5", 6 },
+            { "Tier6", 6 },
+            { "VIP1", 10 },
+            { "VIP2", 30 },
+            { "VIP3", 30 },
+            { "MM1", 10 },
+            { "MM2", 30 },
+            { "MM3", 30 }
+        };
+
         public const string RestApiUrl = "https://ftx.com/api";
         public const string WsApiUrl = "wss://ftx.com/ws/";
 
         private readonly string _apiKey;
         private readonly string _apiSecret;
         private readonly HMACSHA256 _hashMaker;
+        private readonly string _tier;
 
         public static readonly JsonSerializerSettings JsonSettings = new()
         {
@@ -50,7 +67,7 @@ namespace QuantConnect.FTXBrokerage
         };
 
         // Rate gate limiter useful for REST API calls
-        private readonly RateGate _restRateLimiter = new(6, TimeSpan.FromSeconds(1));
+        private readonly RateGate _restRateLimiter;
 
         /// <summary>
         /// The rest client instance
@@ -88,11 +105,25 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="restClient">REST sharp client instance instance</param>
         /// <param name="apiKey">api access key</param>
         /// <param name="apiSecret">api access token</param>
-        public FTXRestApiClient(IRestClient restClient, string apiKey, string apiSecret)
+        /// <param name="tier">account tier</param>
+        public FTXRestApiClient(IRestClient restClient, string apiKey, string apiSecret, string tier = "Tier1")
         {
             _apiKey = apiKey;
             _apiSecret = apiSecret;
             _restClient = restClient;
+
+            if (string.IsNullOrEmpty(tier))
+            {
+                throw new ArgumentNullException(nameof(tier), "FTX Tier cannot be null or empty");
+            }
+
+            if (!Tier2RateLimit.ContainsKey(tier))
+            {
+                throw new ArgumentException(nameof(tier), $"FTX Tier passed cannot be recognized. Please use one of the following values: {string.Join(",", Tier2RateLimit.Keys)}");
+            }
+
+            _tier = tier;
+            _restRateLimiter = new(Tier2RateLimit[_tier], TimeSpan.FromSeconds(1));
             if (!string.IsNullOrEmpty(_apiSecret))
             {
                 _hashMaker = new HMACSHA256(Encoding.UTF8.GetBytes(_apiSecret));

@@ -165,7 +165,7 @@ namespace QuantConnect.FTXBrokerage
             // avoid race condition with placing an order and getting filled events before finished placing
             _messageHandler = new BrokerageConcurrentMessageHandler<WebSocketMessage>(OnUserDataImpl);
 
-            _restApiClient = new FTXRestApiClient(RestClient, apiKey, apiSecret);
+            _restApiClient = new FTXRestApiClient(RestClient, apiKey, apiSecret, Config.Get("ftx-tier", "Tier1"));
             _webSocketResetEvents.AddOrUpdate(WebSocket, new ManualResetEvent(false));
         }
 
