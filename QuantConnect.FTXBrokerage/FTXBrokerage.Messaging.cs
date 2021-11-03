@@ -441,16 +441,23 @@ namespace QuantConnect.FTXBrokerage
         /// so the only way to bind them is to use REST API
         /// https://docs.ftx.com/#get-trigger-order-triggers
         /// </summary>
-        /// <param name="unknownOrderId"></param>
+        /// <param name="eventOrderId"></param>
         /// <param name="market"></param>
         /// <returns></returns>
-        private Orders.Order FindRelatedTriggerOrder(ulong unknownOrderId, string market)
+        private Orders.Order FindRelatedTriggerOrder(ulong eventOrderId, string market)
         {
             var orderSymbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Market.FTX);
-            var potentialOwnerConditionalOrders = _orderProvider
-                .GetOpenOrders(o => (o.Type == OrderType.StopLimit || o.Type == OrderType.StopMarket) && o.Symbol.Equals(orderSymbol));
+            var potentialOwnerConditionalOrders = CachedOrderIDs.Values
+                .Where(s => s.Symbol.Equals(orderSymbol))
+                .ToArray();
 
-            for (var i = 0; i < potentialOwnerConditionalOrders.Count; i++)
+            var order = potentialOwnerConditionalOrders.FirstOrDefault(s => s.BrokerId.Contains(eventOrderId.ToStringInvariant()));
+            if (order != null)
+            {
+                return order;
+            }
+
+            for (var i = 0; i < potentialOwnerConditionalOrders.Length; i++)
             {
                 var triggerOrder = potentialOwnerConditionalOrders[i];
                 if (triggerOrder.BrokerId.Count > 1)
@@ -479,7 +486,7 @@ namespace QuantConnect.FTXBrokerage
                     }
 
                     // we found trigger with orderId matched to new order
-                    if (triggers[j].OrderId.Value == unknownOrderId)
+                    if (triggers[j].OrderId.Value == eventOrderId)
                     {
                         return triggerOrder;
                     }

@@ -200,6 +200,7 @@ namespace QuantConnect.FTXBrokerage
                     case TriggerOrder triggerOrder:
                         {
                             leanOrder = CreateTriggerOrder(symbol, triggerOrder);
+                            CachedOrderIDs.AddOrUpdate(Convert.ToInt32(ftxOrder.Id), leanOrder);
                             break;
                         }
                     default:
@@ -317,6 +318,11 @@ namespace QuantConnect.FTXBrokerage
                     );
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Information, 0, $"Order submitted successfully - OrderId: {order.Id}"));
                     submitted = true;
+
+                    if (order.Type is OrderType.StopLimit or OrderType.StopMarket)
+                    {
+                        CachedOrderIDs.TryAdd(Convert.ToInt32(resultOrder.Id), order);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -400,6 +406,10 @@ namespace QuantConnect.FTXBrokerage
                     { Status = newStatus }
                     );
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Information, 0, $"Order queued for cancelation - OrderId: {order.Id}"));
+                    if (newStatus == OrderStatus.Canceled && !CachedOrderIDs.TryRemove(order.BrokerId.First().ToInt32(), out _))
+                    {
+                        OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, -1, $"Could not remove order from local cache - OrderId: {order.Id}"));
+                    }
                 }
                 catch (Exception e)
                 {
