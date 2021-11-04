@@ -200,6 +200,8 @@ namespace QuantConnect.FTXBrokerage
                     case TriggerOrder triggerOrder:
                         {
                             leanOrder = CreateTriggerOrder(symbol, triggerOrder);
+                            // track original lean order instances for trigger orders, see GH-6041
+                            // it allows us to attach new orders to original lean order
                             CachedOrderIDs.AddOrUpdate(Convert.ToInt32(ftxOrder.Id), leanOrder);
                             break;
                         }
