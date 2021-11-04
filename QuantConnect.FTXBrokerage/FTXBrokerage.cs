@@ -369,6 +369,7 @@ namespace QuantConnect.FTXBrokerage
                 try
                 {
                     string orderType;
+                    string brokerId = order.BrokerId.First();
                     OrderStatus newStatus;
                     switch (order.Type)
                     {
@@ -385,10 +386,24 @@ namespace QuantConnect.FTXBrokerage
                                 break;
                             }
                         case OrderType.StopMarket:
+                            {
+                                orderType = "stop";
+                                newStatus = OrderStatus.Canceled;
+                                break;
+                            }
                         case OrderType.StopLimit:
                             {
                                 orderType = "stop";
                                 newStatus = OrderStatus.Canceled;
+                                // check if stop limit order was triggered
+                                if (CachedOrderIDs.TryGetValue(brokerId.ToInt32(), out var originalOrder) &&
+                                    originalOrder.BrokerId.Count > 1)
+                                {
+                                    // close appropriate limit order if Lean tries to close triggered stop limit order
+                                    orderType = "limit";
+                                    brokerId = originalOrder.BrokerId.Last();
+                                    newStatus = OrderStatus.CancelPending;
+                                }
                                 break;
                             }
                         default:
@@ -397,7 +412,7 @@ namespace QuantConnect.FTXBrokerage
                             }
 
                     }
-                    submitted = _restApiClient.CancelOrder(orderType, order.BrokerId.First().ConvertInvariant<ulong>());
+                    submitted = _restApiClient.CancelOrder(orderType, brokerId.ConvertInvariant<ulong>());
 
 
                     OnOrderEvent(new OrderEvent(
