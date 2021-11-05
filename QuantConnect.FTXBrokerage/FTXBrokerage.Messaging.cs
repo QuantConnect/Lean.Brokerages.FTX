@@ -455,13 +455,6 @@ namespace QuantConnect.FTXBrokerage
                     continue;
                 }
 
-                if (triggerOrder.BrokerId.Contains(eventOrderId.ToStringInvariant()))
-                {
-                    // we found appropriate standard order during previous scan
-                    _stopCachedOrderIDs.TryRemove(conditionalOrderId, out _);
-                    return triggerOrder;
-                }
-
                 // fetch all triggers for trigger order (stop order)
                 var triggers = _restApiClient.GetTriggers(conditionalOrderId);
                 for (var j = 0; j < triggers.Count; j++)
@@ -473,17 +466,20 @@ namespace QuantConnect.FTXBrokerage
                     }
 
                     // update broker id for each trigger order
-                    var relatedOrderId = triggers[j].OrderId?.ToStringInvariant();
+                    var relatedOrderId = triggers[j].OrderId.ToStringInvariant();
                     if (!triggerOrder.BrokerId.Contains(relatedOrderId))
                     {
                         // modifies same order instance as order provider
                         triggerOrder.BrokerId.Add(relatedOrderId);
+
+                        // if order id is not null it means that trigger order is triggered
+                        // we can remove it from cache and rely on IOrderProvider
+                        _stopCachedOrderIDs.TryRemove(conditionalOrderId, out _);
                     }
 
                     // we found trigger with orderId matched to new order
                     if (triggers[j].OrderId.Value == eventOrderId)
                     {
-                        _stopCachedOrderIDs.TryRemove(conditionalOrderId, out _);
                         return triggerOrder;
                     }
                 }
