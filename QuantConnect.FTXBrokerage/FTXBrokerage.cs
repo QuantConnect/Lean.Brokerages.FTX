@@ -27,6 +27,7 @@ using QuantConnect.Securities;
 using QuantConnect.Util;
 using RestSharp;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -58,6 +59,11 @@ namespace QuantConnect.FTXBrokerage
 
         private const int MaximumSymbolsPerConnection = 256;
         private const int HistoricalDataPerRequestLimit = 1000;
+
+        /// <summary>
+        /// A list of currently active stop orders and their appropriate orders
+        /// </summary>
+        private readonly ConcurrentDictionary<ulong, Orders.Order> _stopCachedOrderIDs = new();
 
         /// <summary>
         /// Returns true if we're currently connected to the broker
@@ -202,7 +208,7 @@ namespace QuantConnect.FTXBrokerage
                             leanOrder = CreateTriggerOrder(symbol, triggerOrder);
                             // track original lean order instances for trigger orders, see GH-6041
                             // it allows us to attach new orders to original lean order
-                            CachedOrderIDs.AddOrUpdate(Convert.ToInt32(ftxOrder.Id), leanOrder);
+                            _stopCachedOrderIDs.AddOrUpdate(ftxOrder.Id, leanOrder);
                             break;
                         }
                     default:
@@ -323,7 +329,7 @@ namespace QuantConnect.FTXBrokerage
 
                     if (order.Type is OrderType.StopLimit or OrderType.StopMarket)
                     {
-                        CachedOrderIDs.TryAdd(Convert.ToInt32(resultOrder.Id), order);
+                        _stopCachedOrderIDs.TryAdd(resultOrder.Id, order);
                     }
                 }
                 catch (Exception e)
@@ -396,7 +402,7 @@ namespace QuantConnect.FTXBrokerage
                                 orderType = "stop";
                                 newStatus = OrderStatus.Canceled;
                                 // check if stop limit order was triggered
-                                if (CachedOrderIDs.TryGetValue(brokerId.ToInt32(), out var originalOrder) &&
+                                if (_stopCachedOrderIDs.TryGetValue(ulong.Parse(brokerId), out var originalOrder) &&
                                     originalOrder.BrokerId.Count > 1)
                                 {
                                     // close appropriate limit order if Lean tries to close triggered stop limit order
@@ -423,7 +429,7 @@ namespace QuantConnect.FTXBrokerage
                     { Status = newStatus }
                     );
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Information, 0, $"Order queued for cancelation - OrderId: {order.Id}"));
-                    if (newStatus == OrderStatus.Canceled && !CachedOrderIDs.TryRemove(order.BrokerId.First().ToInt32(), out _))
+                    if (newStatus == OrderStatus.Canceled && !_stopCachedOrderIDs.TryRemove(ulong.Parse(order.BrokerId.First()), out _))
                     {
                         OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, -1, $"Could not remove order from local cache - OrderId: {order.Id}"));
                     }

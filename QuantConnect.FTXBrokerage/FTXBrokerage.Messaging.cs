@@ -447,29 +447,23 @@ namespace QuantConnect.FTXBrokerage
         private Orders.Order FindRelatedTriggerOrder(ulong eventOrderId, string market)
         {
             var orderSymbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Market.FTX);
-            var potentialOwnerConditionalOrders = CachedOrderIDs.Values
-                .Where(s => s.Symbol.Equals(orderSymbol))
-                .ToArray();
 
-            var order = potentialOwnerConditionalOrders.FirstOrDefault(s => s.BrokerId.Contains(eventOrderId.ToStringInvariant()));
-            if (order != null)
+            foreach (var (conditionalOrderId, triggerOrder) in _stopCachedOrderIDs)
             {
-                return order;
-            }
-
-            for (var i = 0; i < potentialOwnerConditionalOrders.Length; i++)
-            {
-                var triggerOrder = potentialOwnerConditionalOrders[i];
-                if (triggerOrder.BrokerId.Count > 1)
+                if (!triggerOrder.Symbol.Equals(orderSymbol))
                 {
-                    // we already matched original trigger order with standard order
-                    // can skip
                     continue;
                 }
 
-                var conditionalOrderId = triggerOrder.BrokerId.First();
+                if (triggerOrder.BrokerId.Contains(eventOrderId.ToStringInvariant()))
+                {
+                    // we found appropriate standard order during previous scan
+                    _stopCachedOrderIDs.TryRemove(conditionalOrderId, out _);
+                    return triggerOrder;
+                }
+
                 // fetch all triggers for trigger order (stop order)
-                var triggers = _restApiClient.GetTriggers(conditionalOrderId.ConvertInvariant<ulong>());
+                var triggers = _restApiClient.GetTriggers(conditionalOrderId);
                 for (var j = 0; j < triggers.Count; j++)
                 {
                     if (!triggers[j].OrderId.HasValue)
@@ -482,12 +476,14 @@ namespace QuantConnect.FTXBrokerage
                     var relatedOrderId = triggers[j].OrderId?.ToStringInvariant();
                     if (!triggerOrder.BrokerId.Contains(relatedOrderId))
                     {
+                        // modifies same order instance as order provider
                         triggerOrder.BrokerId.Add(relatedOrderId);
                     }
 
                     // we found trigger with orderId matched to new order
                     if (triggers[j].OrderId.Value == eventOrderId)
                     {
+                        _stopCachedOrderIDs.TryRemove(conditionalOrderId, out _);
                         return triggerOrder;
                     }
                 }
