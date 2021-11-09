@@ -13,14 +13,11 @@
  * limitations under the License.
 */
 
-namespace QuantConnect.TemplateBrokerage.ToolBox
+namespace QuantConnect.FTXBrokerage.Messages
 {
-    static class Program
+    public class Response<T>
     {
-        static void Main(string[] args)
-        {
-            var downloader = new TemplateBrokerageDownloader();
-
-        }
+        public bool Success { get; set; }
+        public T Result { get; set; }
     }
 }

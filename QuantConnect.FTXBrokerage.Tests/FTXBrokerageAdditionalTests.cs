@@ -14,22 +14,19 @@
 */
 
 using NUnit.Framework;
+using QuantConnect.Interfaces;
+using QuantConnect.Util;
 
-namespace QuantConnect.TemplateBrokerage.Tests
+namespace QuantConnect.FTXBrokerage.Tests
 {
-    [TestFixture, Ignore("Not implemented")]
-    public class TemplateBrokerageSymbolMapperTests
+    [TestFixture]
+    public class FTXBrokerageAdditionalTests
     {
         [Test]
-        public void ReturnsCorrectLeanSymbol()
+        public void ParameterlessConstructorComposerUsage()
         {
-
-        }
-
-        [Test]
-        public void ReturnsCorrectBrokerageSymbol()
-        {
-
+            var brokerage = Composer.Instance.GetExportedValueByTypeName<IDataQueueHandler>("FTXBrokerage");
+            Assert.IsNotNull(brokerage);
         }
     }
 }

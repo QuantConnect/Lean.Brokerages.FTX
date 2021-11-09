@@ -14,16 +14,15 @@
 */
 
 using NUnit.Framework;
-using System.Threading;
 using QuantConnect.Data;
-using QuantConnect.Tests;
-using QuantConnect.Logging;
 using QuantConnect.Data.Market;
+using QuantConnect.Logging;
+using System.Threading;
 
-namespace QuantConnect.TemplateBrokerage.Tests
+namespace QuantConnect.FTXBrokerage.Tests
 {
     [TestFixture]
-    public partial class TemplateBrokerageTests
+    public partial class FTXBrokerageTests
     {
         private static TestCaseData[] TestParameters
         {
@@ -32,9 +31,9 @@ namespace QuantConnect.TemplateBrokerage.Tests
                 return new[]
                 {
                     // valid parameters, for example
-                    new TestCaseData(Symbols.BTCUSD, Resolution.Tick, false),
-                    new TestCaseData(Symbols.BTCUSD, Resolution.Minute, false),
-                    new TestCaseData(Symbols.BTCUSD, Resolution.Second, false),
+                    new TestCaseData(XRP_USDT, Resolution.Tick, false),
+                    new TestCaseData(XRP_USDT, Resolution.Minute, false),
+                    new TestCaseData(XRP_USDT, Resolution.Second, false),
                 };
             }
         }
@@ -43,7 +42,7 @@ namespace QuantConnect.TemplateBrokerage.Tests
         public void StreamsData(Symbol symbol, Resolution resolution, bool throwsException)
         {
             var cancelationToken = new CancellationTokenSource();
-            var brokerage = (TemplateBrokerage)Brokerage;
+            var brokerage = (FTXBrokerage)Brokerage;
 
             SubscriptionDataConfig[] configs;
             if (resolution == Resolution.Tick)

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net5.0</TargetFramework>
+
+        <IsPackable>false</IsPackable>
+        <Copyright>Copyright ©  2021</Copyright>
+        <OutputPath>bin\$(Configuration)\</OutputPath>
+        <Product>QuantConnect.FTXBrokerage.ToolBox</Product>
+        <AssemblyName>QuantConnect.FTXBrokerage.ToolBox</AssemblyName>
+        <RootNamespace>QuantConnect.FTXBrokerage.ToolBox</RootNamespace>
+        <AssemblyTitle>QuantConnect.FTXBrokerage.ToolBox</AssemblyTitle>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Lean\Brokerages\QuantConnect.Brokerages.csproj" />
+      <ProjectReference Include="..\..\Lean\Common\QuantConnect.csproj" />
+      <ProjectReference Include="..\..\Lean\ToolBox\QuantConnect.ToolBox.csproj" />
+      <ProjectReference Include="..\QuantConnect.FTXBrokerage\QuantConnect.FTXBrokerage.csproj" />
+    </ItemGroup>
+</Project>

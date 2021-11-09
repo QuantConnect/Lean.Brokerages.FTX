@@ -13,13 +13,34 @@
  * limitations under the License.
 */
 
-using NUnit.Framework;
+using System;
+using QuantConnect.Orders;
 
-namespace QuantConnect.TemplateBrokerage.Tests
+namespace QuantConnect.FTXBrokerage.Messages
 {
-    [TestFixture, Ignore("Not implemented")]
-    public class TemplateBrokerageAdditionalTests
+    /// <summary>
+    /// Provides data on all new trades in the market
+    /// </summary>
+    public class Trade
     {
+        /// <summary>
+        /// Price of the trade
+        /// </summary>
+        public decimal Price { get; set; }
 
+        /// <summary>
+        /// Size of the trade
+        /// </summary>
+        public decimal Size { get; set; }
+
+        /// <summary>
+        /// Side of the taker in the trade
+        /// </summary>
+        public OrderDirection Side { get; set; }
+
+        /// <summary>
+        /// Timestamp
+        /// </summary>
+        public DateTime Time { get; set; }
     }
 }

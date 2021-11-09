@@ -19,13 +19,16 @@ using QuantConnect.Brokerages;
 using QuantConnect.Interfaces;
 using QuantConnect.Securities;
 using System.Collections.Generic;
+using QuantConnect.Configuration;
+using QuantConnect.Data;
+using QuantConnect.Util;
 
-namespace QuantConnect.TemplateBrokerage
+namespace QuantConnect.FTXBrokerage
 {
     /// <summary>
-    /// Provides a template implementation of BrokerageFactory
+    /// Provides a FTX implementation of BrokerageFactory
     /// </summary>
-    public class TemplateBrokerageFactory : BrokerageFactory
+    public class FTXBrokerageFactory : BrokerageFactory
     {
         /// <summary>
         /// Gets the brokerage data required to run the brokerage from configuration/disk
@@ -34,9 +37,20 @@ namespace QuantConnect.TemplateBrokerage
         /// The implementation of this property will create the brokerage data dictionary required for
         /// running live jobs. See <see cref="IJobQueueHandler.NextJob"/>
         /// </remarks>
-        public override Dictionary<string, string> BrokerageData { get; }
+        public override Dictionary<string, string> BrokerageData => new()
+        {
+            { "ftx-api-key", Config.Get("ftx-api-key") },
+            { "ftx-api-secret", Config.Get("ftx-api-secret") }
+        };
 
-        public TemplateBrokerageFactory(Type brokerageType) : base(brokerageType)
+        /// <summary>
+        /// Factory constructor
+        /// </summary>
+        public FTXBrokerageFactory() : base(typeof(FTXBrokerage))
+        {
+        }
+
+        public FTXBrokerageFactory(Type brokerageType) : base(brokerageType)
         {
         }
 
@@ -45,9 +59,7 @@ namespace QuantConnect.TemplateBrokerage
         /// </summary>
         /// <param name="orderProvider">The order provider</param>
         public override IBrokerageModel GetBrokerageModel(IOrderProvider orderProvider)
-        {
-            throw new NotImplementedException();
-        }
+            => new FTXBrokerageModel();
 
         /// <summary>
         /// Creates a new IBrokerage instance
@@ -57,7 +69,26 @@ namespace QuantConnect.TemplateBrokerage
         /// <returns>A new brokerage instance</returns>
         public override IBrokerage CreateBrokerage(LiveNodePacket job, IAlgorithm algorithm)
         {
-            throw new NotImplementedException();
+            var errors = new List<string>();
+            var apiKey = Read<string>(job.BrokerageData, "ftx-api-key", errors);
+            var apiSecret = Read<string>(job.BrokerageData, "ftx-api-secret", errors);
+
+            if (errors.Count != 0)
+            {
+                // if we had errors then we can't create the instance
+                throw new ArgumentException(string.Join(Environment.NewLine, errors));
+            }
+
+            var brokerage = new FTXBrokerage(
+                apiKey,
+                apiSecret,
+                algorithm,
+                Composer.Instance.GetExportedValueByTypeName<IDataAggregator>(
+                    Config.Get("data-aggregator", "QuantConnect.Lean.Engine.DataFeeds.AggregationManager")),
+                job);
+            Composer.Instance.AddPart<IDataQueueHandler>(brokerage);
+
+            return brokerage;
         }
 
         /// <summary>
@@ -65,7 +96,6 @@ namespace QuantConnect.TemplateBrokerage
         /// </summary>
         public override void Dispose()
         {
-            throw new NotImplementedException();
         }
     }
 }
