@@ -57,7 +57,7 @@ namespace QuantConnect.FTXBrokerage
         private readonly Timer _keepAliveTimer;
         private readonly FTXRestApiClient _restApiClient;
 
-        private const int MaximumSymbolsPerConnection = 256;
+        private const int MaximumSymbolsPerConnection = 12;
         private const int HistoricalDataPerRequestLimit = 1000;
 
         /// <summary>
