@@ -40,7 +40,8 @@ namespace QuantConnect.FTXBrokerage
         public override Dictionary<string, string> BrokerageData => new()
         {
             { "ftx-api-key", Config.Get("ftx-api-key") },
-            { "ftx-api-secret", Config.Get("ftx-api-secret") }
+            { "ftx-api-secret", Config.Get("ftx-api-secret") },
+            { "ftx-account-tier", Config.Get("ftx-account-tier", "Tier1") }
         };
 
         /// <summary>
@@ -72,6 +73,7 @@ namespace QuantConnect.FTXBrokerage
             var errors = new List<string>();
             var apiKey = Read<string>(job.BrokerageData, "ftx-api-key", errors);
             var apiSecret = Read<string>(job.BrokerageData, "ftx-api-secret", errors);
+            var accountTier = Read<string>(job.BrokerageData, "ftx-account-tier", errors);
 
             if (errors.Count != 0)
             {
@@ -82,6 +84,7 @@ namespace QuantConnect.FTXBrokerage
             var brokerage = new FTXBrokerage(
                 apiKey,
                 apiSecret,
+                accountTier,
                 algorithm,
                 Composer.Instance.GetExportedValueByTypeName<IDataAggregator>(
                     Config.Get("data-aggregator", "QuantConnect.Lean.Engine.DataFeeds.AggregationManager")),

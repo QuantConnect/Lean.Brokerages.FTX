@@ -44,10 +44,12 @@ namespace QuantConnect.FTXBrokerage.Tests
 
             var apiKey = Config.Get("ftx-api-key");
             var apiSecret = Config.Get("ftx-api-secret");
+            var accountTier = Config.Get("ftx-api-secret");
 
             return new FTXBrokerage(
                 apiKey,
                 apiSecret,
+                accountTier,
                 orderProvider,
                 securityProvider,
                 new AggregationManager(),

@@ -40,7 +40,7 @@ namespace QuantConnect.FTXBrokerage.ToolBox
         /// </summary>
         public FTXHistoryDownloader()
         {
-            _brokerage = new FTXBrokerage(string.Empty, string.Empty, null, null, null);
+            _brokerage = new FTXBrokerage(string.Empty, string.Empty, "Tier1", null, null, null);
         }
 
         /// <summary>
