@@ -48,7 +48,7 @@ namespace QuantConnect.FTXBrokerage
     {
         private bool _isAuthenticated;
 
-        private string _exchangeName;
+        private string _market;
         private IDataAggregator _aggregator;
         private IOrderProvider _orderProvider;
         private ISecurityProvider _securityProvider;
@@ -85,15 +85,14 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="securityProvider">The security provider</param>
         /// <param name="aggregator">data aggregator</param>
         /// <param name="job">The job packet</param>
-        public FTXBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job, string exchangeName) : this(
+        public FTXBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job) : this(
             Config.Get("ftx-api-key"),
             Config.Get("ftx-api-secret"),
             Config.Get("ftx-account-tier"),
             orderProvider,
             securityProvider,
             aggregator,
-            job,
-            exchangeName)
+            job)
         { }
 
         /// <summary>
@@ -112,8 +111,7 @@ namespace QuantConnect.FTXBrokerage
             algorithm?.Transactions,
             algorithm?.Portfolio,
             aggregator,
-            job,
-            exchangeName)
+            job)
         { }
 
         /// <summary>
@@ -126,8 +124,33 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="securityProvider">The security provider used to give access to algorithm securities</param>
         /// <param name="aggregator">consolidate ticks</param>
         /// <param name="job">The live job packet</param>
-        public FTXBrokerage(string apiKey, string apiSecret, string accountTier, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job) : base(
-            exchangeName)
+        public FTXBrokerage(string apiKey, string apiSecret, string accountTier, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job) : this(
+            apiKey,
+            apiSecret,
+            accountTier,
+            "https://ftx.com/api",
+            "wss://ftx.com/ws/",
+            orderProvider,
+            securityProvider,
+            aggregator,
+            job,
+            Market.FTX)
+        {
+        }
+
+        /// <summary>
+        /// Creates a new instance
+        /// </summary>
+        /// <param name="apiKey">api key</param>
+        /// <param name="apiSecret">api secret</param>
+        /// <param name="accountTier">account tier</param>
+        /// <param name="orderProvider">An instance of IOrderProvider used to fetch Order objects by brokerage ID</param>
+        /// <param name="securityProvider">The security provider used to give access to algorithm securities</param>
+        /// <param name="aggregator">consolidate ticks</param>
+        /// <param name="job">The live job packet</param>
+        protected FTXBrokerage(string apiKey, string apiSecret, string accountTier, string restApiUrl, string wssUrl, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job, string exchangeName) : base(
+            wssUrl,
+            exchangeName.ToUpperInvariant())
         {
             Initialize(apiKey, apiSecret, accountTier, orderProvider, securityProvider, aggregator, job);
         }
@@ -151,7 +174,7 @@ namespace QuantConnect.FTXBrokerage
 
             foreach (var ftxOrder in openOrders)
             {
-                var symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market, SecurityType.Crypto, Name);
+                var symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market, SecurityType.Crypto, _market);
                 Orders.Order leanOrder;
                 switch (ftxOrder)
                 {
@@ -187,6 +210,7 @@ namespace QuantConnect.FTXBrokerage
 
             return resultList;
         }
+
 
         /// <summary>
         /// Gets all open positions, not applicable for spot assets

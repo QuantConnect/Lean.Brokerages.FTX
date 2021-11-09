@@ -43,11 +43,9 @@ namespace QuantConnect.FTXBrokerage.ToolBox
         {
             _market = market;
             _symbolMapper = new(_market);
-            if (market == Market.FTXUS)
-            {
-                Config.Set("ftx-api-url", "https://ftx.us/api");
-            }
-            _brokerage = new FTXBrokerage(string.Empty, string.Empty, "Tier1", null, null, null);
+            _brokerage = market == Market.FTX
+                ? new FTXBrokerage(string.Empty, string.Empty, "Tier1", null, null, null)
+                : new FTXUSBrokerage(string.Empty, string.Empty, "Tier1", null, null, null);
         }
 
         /// <summary>
@@ -122,7 +120,7 @@ namespace QuantConnect.FTXBrokerage.ToolBox
 
                 // Load settings from config.json
                 var dataDirectory = Config.Get("data-folder", Globals.DataFolder);
-                
+
                 var downloader = new FTXHistoryDownloader(market);
 
                 foreach (var ticker in tickers)

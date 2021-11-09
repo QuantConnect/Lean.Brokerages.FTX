@@ -13,13 +13,10 @@
  * limitations under the License.
 */
 
-using Newtonsoft.Json;
+using QuantConnect.Configuration;
 using QuantConnect.ToolBox;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net;
-using QuantConnect.Configuration;
 
 namespace QuantConnect.FTXBrokerage.ToolBox
 {
@@ -31,15 +28,18 @@ namespace QuantConnect.FTXBrokerage.ToolBox
         /// <summary>
         /// Market name
         /// </summary>
-        public string Market { get; private set; }
+        public string Market { get; }
+
+        private readonly FTXRestApiClient _client;
 
         public FTXMarketDownloader(string market = QuantConnect.Market.FTX)
         {
             Market = market;
-            if (market == QuantConnect.Market.FTXUS)
-            {
-                Config.Set("ftx-api-url", "https://ftx.us/api");
-            }
+            var restUrl = market == QuantConnect.Market.FTXUS
+                ? "https://ftx.us/api"
+                : "https://ftx.com/api";
+
+            _client = new FTXRestApiClient(restUrl);
         }
 
         /// <summary>
@@ -48,9 +48,7 @@ namespace QuantConnect.FTXBrokerage.ToolBox
         /// <returns>Enumerable of exchange info</returns>
         public IEnumerable<string> Get()
         {
-            var client = new FTXRestApiClient();
-
-            var exchangeInfo = client.GetAllMarkets();
+            var exchangeInfo = _client.GetAllMarkets();
 
             foreach (var symbol in exchangeInfo.Where(s => s.Type.Equals("spot")).OrderBy(x => x.Name))
             {

@@ -35,8 +35,6 @@ namespace QuantConnect.FTXBrokerage
     /// </summary>
     public class FTXRestApiClient : IDisposable
     {
-        public static readonly string RestApiUrl = Config.Get("ftx-api-url", "https://ftx.com/api");
-        public static readonly string WsApiUrl = Config.Get("ftx-websocket-url", "wss://ftx.com/ws/");
         private static readonly Dictionary<string, int> Tier2RateLimit = new(StringComparer.OrdinalIgnoreCase)
         {
             { "Tier1", 6 },
@@ -84,9 +82,10 @@ namespace QuantConnect.FTXBrokerage
         };
 
         /// <summary>
-        /// Parameterless constructor; can be used to access public endpoints
+        /// Can be used to access public endpoints
         /// </summary>
-        public FTXRestApiClient() : this(null, string.Empty)
+        /// <param name="restUrl">ftx exhcnage rest api endpoint (ftx or ftxus)</param>
+        public FTXRestApiClient(string restUrl) : this(null, null, restUrl)
         {
         }
 
@@ -95,8 +94,9 @@ namespace QuantConnect.FTXBrokerage
         /// </summary>
         /// <param name="apiKey">api access key</param>
         /// <param name="apiSecret">api access token</param>
-        public FTXRestApiClient(string apiKey, string apiSecret)
-            : this(new RestClient(RestApiUrl), apiKey, apiSecret)
+        /// <param name="restUrl">ftx exhcnage rest api endpoint (ftx or ftxus)</param>
+        public FTXRestApiClient(string apiKey, string apiSecret, string restUrl)
+            : this(new RestClient(restUrl), apiKey, apiSecret)
         {
         }
 
