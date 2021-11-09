@@ -144,10 +144,13 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="apiKey">api key</param>
         /// <param name="apiSecret">api secret</param>
         /// <param name="accountTier">account tier</param>
+        /// <param name="restApiUrl">FTX API Endpoint url</param>
+        /// <param name="wssUrl">WSS endpoint</param>
         /// <param name="orderProvider">An instance of IOrderProvider used to fetch Order objects by brokerage ID</param>
         /// <param name="securityProvider">The security provider used to give access to algorithm securities</param>
         /// <param name="aggregator">consolidate ticks</param>
         /// <param name="job">The live job packet</param>
+        /// <param name="exchangeName">exchange name</param>
         protected FTXBrokerage(string apiKey, string apiSecret, string accountTier, string restApiUrl, string wssUrl, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job, string exchangeName) : base(
             wssUrl,
             exchangeName.ToUpperInvariant())

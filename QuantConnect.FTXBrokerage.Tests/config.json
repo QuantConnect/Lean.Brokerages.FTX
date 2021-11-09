@@ -1,5 +1,6 @@
 {
   "data-folder": "../../../../Lean/Data/",
   "data-directory": "../../../../Lean/Data/",
-  "ftx-account-tier": "Tier1" 
+  "ftx-account-tier": "Tier1",
+  "ftxus-account-tier": "Tier1"
 }
