@@ -15,6 +15,7 @@
 
 using QuantConnect.Configuration;
 using System;
+using QuantConnect.Logging;
 using static QuantConnect.Configuration.ApplicationParser;
 
 namespace QuantConnect.FTXBrokerage.ToolBox
@@ -23,6 +24,8 @@ namespace QuantConnect.FTXBrokerage.ToolBox
     {
         static void Main(string[] args)
         {
+            Log.DebuggingEnabled = Config.GetBool("debug-mode");
+
             var optionsObject = ToolboxArgumentParser.ParseArguments(args);
             if (optionsObject.Count == 0)
             {
