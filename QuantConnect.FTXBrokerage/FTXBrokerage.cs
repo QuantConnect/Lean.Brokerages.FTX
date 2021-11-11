@@ -536,7 +536,7 @@ namespace QuantConnect.FTXBrokerage
             // Fetch the data
             while (currentStartTime < lastRequestedBarEndTime)
             {
-                Log.Debug($"FTXBrokerage.GetHistory(): Fetching data from {currentStartTime:g} to {currentEndTime:g}");
+                Log.Debug($"FTXBrokerage.GetHistory(): Fetching data from {currentStartTime:g} to {currentEndTime:g} for {request.Symbol.Value}");
 
                 foreach (var candle in _restApiClient.GetHistoricalPrices(brokerageSymbol, resolutionInSeconds, currentStartTime, currentEndTime))
                 {
