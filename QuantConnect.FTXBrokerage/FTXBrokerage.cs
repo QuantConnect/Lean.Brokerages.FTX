@@ -568,14 +568,17 @@ namespace QuantConnect.FTXBrokerage
         /// Adds the specified symbols to the subscription
         /// </summary>
         /// <param name="symbols">The symbols to be added keyed by SecurityType</param>
-        public override void Subscribe(IEnumerable<Symbol> symbols) { }
+        protected override bool Subscribe(IEnumerable<Symbol> symbols)
+        {
+            return true;
+        }
 
         /// <summary>
         /// Handles websocket received messages
         /// </summary>
         /// <param name="sender">web socket wrapper</param>
         /// <param name="e">message</param>
-        public override void OnMessage(object sender, WebSocketMessage e)
+        protected override void OnMessage(object sender, WebSocketMessage e)
         {
             _messageHandler.HandleNewMessage(e);
         }
