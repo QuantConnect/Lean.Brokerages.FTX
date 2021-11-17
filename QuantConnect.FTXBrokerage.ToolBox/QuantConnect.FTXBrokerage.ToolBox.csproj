@@ -12,10 +12,14 @@
         <RootNamespace>QuantConnect.FTXBrokerage.ToolBox</RootNamespace>
         <AssemblyTitle>QuantConnect.FTXBrokerage.ToolBox</AssemblyTitle>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
         <Description>QuantConnect LEAN FTX Brokerage: FTX Brokerage toolbox plugin for Lean</Description>
     </PropertyGroup>
-
+    <ItemGroup>
+        <Compile Include="..\..\Lean\Common\Properties\SharedAssemblyInfo.cs" Link="Properties\SharedAssemblyInfo.cs" />
+    </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\..\Lean\Brokerages\QuantConnect.Brokerages.csproj" />
       <ProjectReference Include="..\..\Lean\Common\QuantConnect.csproj" />
@@ -25,7 +29,7 @@
     <Target Name="_ExactProjectReferencesVersion" AfterTargets="_GetProjectReferenceVersions">
         <ItemGroup>
             <_ProjectReferencesWithExactVersions Include="@(_ProjectReferencesWithVersions)">
-                <ProjectVersion>[%(_ProjectReferencesWithVersions.ProjectVersion), $([MSBuild]::Add($([System.Text.RegularExpressions.Regex]::Match('%(_ProjectReferencesWithVersions.ProjectVersion)', '^\d+').Value), '1')))</ProjectVersion>
+                <ProjectVersion>[$([System.Text.RegularExpressions.Regex]::Match('%(_ProjectReferencesWithVersions.ProjectVersion)', '^\d+.\d+').Value).0, $([MSBuild]::Add($([System.Text.RegularExpressions.Regex]::Match('%(_ProjectReferencesWithVersions.ProjectVersion)', '^\d+').Value), '1')))</ProjectVersion>
             </_ProjectReferencesWithExactVersions>
         </ItemGroup>
         <ItemGroup>
