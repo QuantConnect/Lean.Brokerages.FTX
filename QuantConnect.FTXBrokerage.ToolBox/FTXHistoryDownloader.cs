@@ -46,13 +46,21 @@ namespace QuantConnect.FTXBrokerage.ToolBox
         /// <summary>
         /// Get historical data enumerable for a single symbol, type and resolution given this start and end time (in UTC).
         /// </summary>
-        /// <param name="symbol">Symbol for the data we're looking for.</param>
-        /// <param name="resolution">Resolution of the data request</param>
-        /// <param name="startUtc">Start time of the data in UTC</param>
-        /// <param name="endUtc">End time of the data in UTC</param>
+        /// <param name="dataDownloaderGetParameters">model class for passing in parameters for historical data</param>
         /// <returns>Enumerable of base data for this symbol</returns>
-        public IEnumerable<BaseData> Get(Symbol symbol, Resolution resolution, DateTime startUtc, DateTime endUtc)
+        public IEnumerable<BaseData> Get(DataDownloaderGetParameters dataDownloaderGetParameters)
         {
+            var symbol = dataDownloaderGetParameters.Symbol;
+            var resolution = dataDownloaderGetParameters.Resolution;
+            var startUtc = dataDownloaderGetParameters.StartUtc;
+            var endUtc = dataDownloaderGetParameters.EndUtc;
+            var tickType = dataDownloaderGetParameters.TickType;
+
+            if (tickType != TickType.Trade)
+            {
+                return Enumerable.Empty<BaseData>();
+            }
+
             if (resolution == Resolution.Tick || resolution == Resolution.Second)
                 throw new ArgumentException($"Resolution not available: {resolution}");
 
@@ -73,7 +81,7 @@ namespace QuantConnect.FTXBrokerage.ToolBox
                 resolution,
                 false,
                 false,
-                DataNormalizationMode.Adjusted,
+                DataNormalizationMode.Raw,
                 TickType.Trade);
 
             var data = _brokerage.GetHistory(historyRequest);
@@ -114,7 +122,7 @@ namespace QuantConnect.FTXBrokerage.ToolBox
                 {
                     // Download the data
                     var symbol = downloader.GetSymbol(ticker);
-                    var data = downloader.Get(symbol, castResolution, fromDate, toDate);
+                    var data = downloader.Get(new DataDownloaderGetParameters(symbol, castResolution, fromDate, toDate));
                     var bars = data.Cast<TradeBar>().ToList();
 
                     // Save the data (single resolution)
