@@ -127,7 +127,7 @@ namespace QuantConnect.FTXBrokerage
         public FTXBrokerage(string apiKey, string apiSecret, string accountTier, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job) 
             : base("FTX")
         {
-            Initialze(apiKey, apiSecret, accountTier, orderProvider, securityProvider, aggregator, job);
+            Initialize(apiKey, apiSecret, accountTier, orderProvider, securityProvider, aggregator, job);
         }
 
         #region Brokerage
@@ -524,7 +524,7 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="securityProvider">The security provider used to give access to algorithm securities</param>
         /// <param name="aggregator">consolidate ticks</param>
         /// <param name="job">The live job packet</param>
-        protected void Initialze(string apiKey, string apiSecret, string accountTier, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job)
+        protected void Initialize(string apiKey, string apiSecret, string accountTier, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job)
         {
             if (IsInitialized)
             {

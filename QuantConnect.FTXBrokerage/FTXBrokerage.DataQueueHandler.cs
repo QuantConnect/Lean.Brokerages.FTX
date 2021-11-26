@@ -70,10 +70,11 @@ namespace QuantConnect.FTXBrokerage
             var accountTier = job.BrokerageData["ftx-account-tier"];
             var aggregator = Composer.Instance.GetExportedValueByTypeName<IDataAggregator>(
                     Config.Get("data-aggregator", "QuantConnect.Lean.Engine.DataFeeds.AggregationManager"));
-            Initialze(
+            Initialize(
                 apiKey,
                 apiSecret,
                 accountTier,
+                null,
                 null,
                 aggregator,
                 job);
