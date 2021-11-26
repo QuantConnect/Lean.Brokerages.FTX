@@ -48,14 +48,14 @@ namespace QuantConnect.FTXBrokerage
     {
         private bool _isAuthenticated;
 
-        private readonly LiveNodePacket _job;
-        private readonly IDataAggregator _aggregator;
-        private readonly IOrderProvider _orderProvider;
-        private readonly ISecurityProvider _securityProvider;
-        private readonly BrokerageConcurrentMessageHandler<WebSocketMessage> _messageHandler;
+        private LiveNodePacket _job;
+        private IDataAggregator _aggregator;
+        private IOrderProvider _orderProvider;
+        private ISecurityProvider _securityProvider;
+        private BrokerageConcurrentMessageHandler<WebSocketMessage> _messageHandler;
         private readonly SymbolPropertiesDatabaseSymbolMapper _symbolMapper = new(Market.FTX);
-        private readonly Timer _keepAliveTimer;
-        private readonly FTXRestApiClient _restApiClient;
+        private Timer _keepAliveTimer;
+        private FTXRestApiClient _restApiClient;
 
         private const int MaximumSymbolsPerConnection = 12;
         private const int HistoricalDataPerRequestLimit = 1000;
@@ -74,8 +74,7 @@ namespace QuantConnect.FTXBrokerage
         /// Parameterless constructor for brokerage
         /// </summary>
         /// <remarks>This parameterless constructor is required for brokerages implementing <see cref="IDataQueueHandler"/></remarks>
-        public FTXBrokerage()
-            : this(null, null, Composer.Instance.GetPart<IDataAggregator>(), null)
+        public FTXBrokerage(): base("FTX")
         {
         }
 
@@ -125,59 +124,10 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="securityProvider">The security provider used to give access to algorithm securities</param>
         /// <param name="aggregator">consolidate ticks</param>
         /// <param name="job">The live job packet</param>
-        public FTXBrokerage(string apiKey, string apiSecret, string accountTier, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job) : base(
-            FTXRestApiClient.WsApiUrl,
-            new WebSocketClientWrapper(),
-            new RestClient(FTXRestApiClient.RestApiUrl),
-            apiKey,
-            apiSecret,
-            "FTX")
+        public FTXBrokerage(string apiKey, string apiSecret, string accountTier, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job) 
+            : base("FTX")
         {
-            _orderProvider = orderProvider;
-            _securityProvider = securityProvider;
-            _job = job;
-            _aggregator = aggregator;
-            SubscriptionManager = new BrokerageMultiWebSocketSubscriptionManager(
-                FTXRestApiClient.WsApiUrl,
-                MaximumSymbolsPerConnection,
-                maximumWebSocketConnections: 0,
-                null,
-                () =>
-                {
-                    var webSocket = new WebSocketClientWrapper();
-                    _webSocketResetEvents.AddOrUpdate(webSocket, new ManualResetEvent(false));
-                    return webSocket;
-                },
-                Subscribe,
-                Unsubscribe,
-                OnStreamDataImpl,
-                webSocketConnectionDuration: TimeSpan.Zero);
-
-            // Send pings at regular intervals (every 15 seconds)
-            _keepAliveTimer = new Timer
-            {
-                Interval = 15 * 1000
-            };
-            _keepAliveTimer.Elapsed += (s, e) =>
-            {
-                WebSocket.Send("{\"op\": \"ping\"}");
-            };
-
-            WebSocket.Open += (s, e) =>
-            {
-                Authenticate();
-                _keepAliveTimer.Start();
-            };
-            WebSocket.Closed += (s, e) => { _keepAliveTimer.Stop(); };
-
-            // Useful for some brokerages:
-
-            // Brokerage helper class to lock websocket message stream while executing an action, for example placing an order
-            // avoid race condition with placing an order and getting filled events before finished placing
-            _messageHandler = new BrokerageConcurrentMessageHandler<WebSocketMessage>(OnUserDataImpl);
-
-            _restApiClient = new FTXRestApiClient(RestClient, apiKey, apiSecret, accountTier);
-            _webSocketResetEvents.AddOrUpdate(WebSocket, new ManualResetEvent(false));
+            Initialze(apiKey, apiSecret, accountTier, orderProvider, securityProvider, aggregator, job);
         }
 
         #region Brokerage
@@ -563,6 +513,70 @@ namespace QuantConnect.FTXBrokerage
         }
 
         #endregion
+
+        /// <summary>
+        /// Initializes the instance of the class
+        /// </summary>
+        /// <param name="apiKey">api key</param>
+        /// <param name="apiSecret">api secret</param>
+        /// <param name="accountTier">account tier</param>
+        /// <param name="orderProvider">An instance of IOrderProvider used to fetch Order objects by brokerage ID</param>
+        /// <param name="securityProvider">The security provider used to give access to algorithm securities</param>
+        /// <param name="aggregator">consolidate ticks</param>
+        /// <param name="job">The live job packet</param>
+        protected void Initialze(string apiKey, string apiSecret, string accountTier, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job)
+        {
+            if (IsInitialized)
+            {
+                return;
+            }
+            base.Initialize(FTXRestApiClient.WsApiUrl, new WebSocketClientWrapper(), new RestClient(FTXRestApiClient.RestApiUrl),apiKey, apiSecret);
+            _orderProvider = orderProvider;
+            _securityProvider = securityProvider;
+            _job = job;
+            _aggregator = aggregator;
+            SubscriptionManager = new BrokerageMultiWebSocketSubscriptionManager(
+                FTXRestApiClient.WsApiUrl,
+                MaximumSymbolsPerConnection,
+                maximumWebSocketConnections: 0,
+                null,
+                () =>
+                {
+                    var webSocket = new WebSocketClientWrapper();
+                    _webSocketResetEvents.AddOrUpdate(webSocket, new ManualResetEvent(false));
+                    return webSocket;
+                },
+                Subscribe,
+                Unsubscribe,
+                OnStreamDataImpl,
+                webSocketConnectionDuration: TimeSpan.Zero);
+
+            // Send pings at regular intervals (every 15 seconds)
+            _keepAliveTimer = new Timer
+            {
+                Interval = 15 * 1000
+            };
+            _keepAliveTimer.Elapsed += (s, e) =>
+            {
+                WebSocket.Send("{\"op\": \"ping\"}");
+            };
+
+            WebSocket.Open += (s, e) =>
+            {
+                Authenticate();
+                _keepAliveTimer.Start();
+            };
+            WebSocket.Closed += (s, e) => { _keepAliveTimer.Stop(); };
+
+            // Useful for some brokerages:
+
+            // Brokerage helper class to lock websocket message stream while executing an action, for example placing an order
+            // avoid race condition with placing an order and getting filled events before finished placing
+            _messageHandler = new BrokerageConcurrentMessageHandler<WebSocketMessage>(OnUserDataImpl);
+
+            _restApiClient = new FTXRestApiClient(RestClient, apiKey, apiSecret, accountTier);
+            _webSocketResetEvents.AddOrUpdate(WebSocket, new ManualResetEvent(false));
+        }
 
         /// <summary>
         /// Adds the specified symbols to the subscription

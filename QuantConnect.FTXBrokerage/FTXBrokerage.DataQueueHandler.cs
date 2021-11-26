@@ -15,9 +15,11 @@
 
 using Newtonsoft.Json;
 using QuantConnect.Brokerages;
+using QuantConnect.Configuration;
 using QuantConnect.Data;
 using QuantConnect.Logging;
 using QuantConnect.Packets;
+using QuantConnect.Util;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,7 +40,7 @@ namespace QuantConnect.FTXBrokerage
         {
             if (!CanSubscribe(dataConfig.Symbol))
             {
-                return Enumerable.Empty<BaseData>().GetEnumerator();
+                return null;
             }
 
             var enumerator = _aggregator.Add(dataConfig, newDataAvailableHandler);
@@ -63,6 +65,23 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="job">Job we're subscribing for</param>
         public void SetJob(LiveNodePacket job)
         {
+            var apiKey = job.BrokerageData["ftx-api-key"];
+            var apiSecret = job.BrokerageData["ftx-api-secret"];
+            var accountTier = job.BrokerageData["ftx-account-tier"];
+            var aggregator = Composer.Instance.GetExportedValueByTypeName<IDataAggregator>(
+                    Config.Get("data-aggregator", "QuantConnect.Lean.Engine.DataFeeds.AggregationManager"));
+            Initialze(
+                apiKey,
+                apiSecret,
+                accountTier,
+                null,
+                aggregator,
+                job);
+
+            if (!IsConnected)
+            {
+                Connect();
+            }
         }
 
         #endregion
