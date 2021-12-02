@@ -157,7 +157,8 @@ namespace QuantConnect.FTXBrokerage
         {
             return symbol.Value.IndexOfInvariant("universe", true) == -1
                    && _symbolMapper.IsKnownLeanSymbol(symbol)
-                   && symbol.SecurityType == SecurityType.Crypto;
+                   && symbol.SecurityType == SecurityType.Crypto
+                   && symbol.ID.Market == Market.FTX;
         }
     }
 }
