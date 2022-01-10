@@ -97,5 +97,19 @@ namespace QuantConnect.FTXBrokerage
             Market.FTXUS)
         {
         }
+
+        protected override void SetJobInit(LiveNodePacket job, IDataAggregator aggregator)
+        {
+            Initialize(
+                job.BrokerageData["ftxus-api-key"],
+                job.BrokerageData["ftxus-api-secret"],
+                job.BrokerageData["ftxus-account-tier"],
+                "https://ftx.us/api",
+                "wss://ftx.us/ws/",
+                null,
+                null,
+                aggregator,
+                job);
+        }
     }
 }

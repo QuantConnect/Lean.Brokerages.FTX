@@ -65,24 +65,28 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="job">Job we're subscribing for</param>
         public void SetJob(LiveNodePacket job)
         {
-            var apiKey = job.BrokerageData["ftx-api-key"];
-            var apiSecret = job.BrokerageData["ftx-api-secret"];
-            var accountTier = job.BrokerageData["ftx-account-tier"];
             var aggregator = Composer.Instance.GetExportedValueByTypeName<IDataAggregator>(
                     Config.Get("data-aggregator", "QuantConnect.Lean.Engine.DataFeeds.AggregationManager"));
-            Initialize(
-                apiKey,
-                apiSecret,
-                accountTier,
-                null,
-                null,
-                aggregator,
-                job);
+            SetJobInit(job, aggregator);
 
             if (!IsConnected)
             {
                 Connect();
             }
+        }
+
+        protected virtual void SetJobInit(LiveNodePacket job, IDataAggregator aggregator)
+        {
+            Initialize(
+                job.BrokerageData["ftx-api-key"],
+                job.BrokerageData["ftx-api-secret"],
+                job.BrokerageData["ftx-account-tier"],
+                "https://ftx.com/api",
+                "wss://ftx.com/ws/",
+                null,
+                null,
+                aggregator,
+                job);
         }
 
         #endregion

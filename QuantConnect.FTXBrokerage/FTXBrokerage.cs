@@ -49,6 +49,7 @@ namespace QuantConnect.FTXBrokerage
         private bool _isAuthenticated;
 
         private string _market;
+        private LiveNodePacket _job;
         private IDataAggregator _aggregator;
         private IOrderProvider _orderProvider;
         private ISecurityProvider _securityProvider;
@@ -74,7 +75,7 @@ namespace QuantConnect.FTXBrokerage
         /// Parameterless constructor for brokerage
         /// </summary>
         /// <remarks>This parameterless constructor is required for brokerages implementing <see cref="IDataQueueHandler"/></remarks>
-        public FTXBrokerage(): base("FTX")
+        public FTXBrokerage() : base("FTX")
         {
         }
 
@@ -151,11 +152,20 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="aggregator">consolidate ticks</param>
         /// <param name="job">The live job packet</param>
         /// <param name="exchangeName">exchange name</param>
-        protected FTXBrokerage(string apiKey, string apiSecret, string accountTier, string restApiUrl, string wssUrl, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job, string exchangeName) : base(
-            wssUrl,
+        protected FTXBrokerage(
+            string apiKey,
+            string apiSecret,
+            string accountTier,
+            string restApiUrl,
+            string wssUrl,
+            IOrderProvider orderProvider,
+            ISecurityProvider securityProvider,
+            IDataAggregator aggregator,
+            LiveNodePacket job,
+            string exchangeName) : base(
             exchangeName.ToUpperInvariant())
         {
-            Initialize(apiKey, apiSecret, accountTier, orderProvider, securityProvider, aggregator, job);
+            Initialize(apiKey, apiSecret, accountTier, restApiUrl, wssUrl, orderProvider, securityProvider, aggregator, job);
         }
 
         #region Brokerage
@@ -214,7 +224,6 @@ namespace QuantConnect.FTXBrokerage
             return resultList;
         }
 
-
         /// <summary>
         /// Gets all open positions, not applicable for spot assets
         /// https://docs.ftx.com/#get-positions works for futures only
@@ -224,7 +233,6 @@ namespace QuantConnect.FTXBrokerage
         {
             return base.GetAccountHoldings(_job?.BrokerageData, (_securityProvider as SecurityPortfolioManager)?.Securities.Values);
         }
-
 
         /// <summary>
         /// Gets the current cash balance for each currency held in the brokerage account
@@ -549,23 +557,25 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="apiKey">api key</param>
         /// <param name="apiSecret">api secret</param>
         /// <param name="accountTier">account tier</param>
+        /// <param name="restApiUrl">FTX API Endpoint url</param>
+        /// <param name="wssUrl">WSS endpoint</param>
         /// <param name="orderProvider">An instance of IOrderProvider used to fetch Order objects by brokerage ID</param>
         /// <param name="securityProvider">The security provider used to give access to algorithm securities</param>
         /// <param name="aggregator">consolidate ticks</param>
         /// <param name="job">The live job packet</param>
-        protected void Initialize(string apiKey, string apiSecret, string accountTier, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job)
+        protected void Initialize(string apiKey, string apiSecret, string accountTier, string restApiUrl, string wssUrl, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job)
         {
             if (IsInitialized)
             {
                 return;
             }
-            base.Initialize(FTXRestApiClient.WsApiUrl, new WebSocketClientWrapper(), new RestClient(FTXRestApiClient.RestApiUrl),apiKey, apiSecret);
+            base.Initialize(wssUrl, new WebSocketClientWrapper(), new RestClient(restApiUrl), apiKey, apiSecret);
             _orderProvider = orderProvider;
             _securityProvider = securityProvider;
             _job = job;
             _aggregator = aggregator;
             SubscriptionManager = new BrokerageMultiWebSocketSubscriptionManager(
-                FTXRestApiClient.WsApiUrl,
+                wssUrl,
                 MaximumSymbolsPerConnection,
                 maximumWebSocketConnections: 0,
                 null,
