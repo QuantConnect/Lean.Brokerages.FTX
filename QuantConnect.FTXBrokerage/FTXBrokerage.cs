@@ -54,7 +54,7 @@ namespace QuantConnect.FTXBrokerage
         private IOrderProvider _orderProvider;
         private ISecurityProvider _securityProvider;
         private BrokerageConcurrentMessageHandler<WebSocketMessage> _messageHandler;
-        private readonly SymbolPropertiesDatabaseSymbolMapper _symbolMapper;
+        private SymbolPropertiesDatabaseSymbolMapper _symbolMapper;
         private Timer _keepAliveTimer;
         private FTXRestApiClient _restApiClient;
 
@@ -165,7 +165,7 @@ namespace QuantConnect.FTXBrokerage
             string exchangeName) : base(
             exchangeName.ToUpperInvariant())
         {
-            Initialize(apiKey, apiSecret, accountTier, restApiUrl, wssUrl, orderProvider, securityProvider, aggregator, job);
+            Initialize(apiKey, apiSecret, accountTier, restApiUrl, wssUrl, orderProvider, securityProvider, aggregator, job, exchangeName);
         }
 
         #region Brokerage
@@ -563,7 +563,8 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="securityProvider">The security provider used to give access to algorithm securities</param>
         /// <param name="aggregator">consolidate ticks</param>
         /// <param name="job">The live job packet</param>
-        protected void Initialize(string apiKey, string apiSecret, string accountTier, string restApiUrl, string wssUrl, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job)
+        /// <param name="exchangeName">Ftx Exchange name either FTX or FTXUS</param>
+        protected void Initialize(string apiKey, string apiSecret, string accountTier, string restApiUrl, string wssUrl, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job, string exchangeName)
         {
             if (IsInitialized)
             {
@@ -574,6 +575,8 @@ namespace QuantConnect.FTXBrokerage
             _securityProvider = securityProvider;
             _job = job;
             _aggregator = aggregator;
+            _symbolMapper = new(exchangeName.ToUpperInvariant());
+
             SubscriptionManager = new BrokerageMultiWebSocketSubscriptionManager(
                 wssUrl,
                 MaximumSymbolsPerConnection,

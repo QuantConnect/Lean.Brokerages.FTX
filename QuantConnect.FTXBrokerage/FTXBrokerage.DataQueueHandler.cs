@@ -86,7 +86,8 @@ namespace QuantConnect.FTXBrokerage
                 null,
                 null,
                 aggregator,
-                job);
+                job,
+                Market.FTX);
         }
 
         #endregion

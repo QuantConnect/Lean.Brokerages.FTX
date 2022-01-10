@@ -26,7 +26,6 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
-using QuantConnect.Configuration;
 
 namespace QuantConnect.FTXBrokerage
 {
@@ -56,6 +55,7 @@ namespace QuantConnect.FTXBrokerage
         private readonly string _apiSecret;
         private readonly HMACSHA256 _hashMaker;
         private readonly string _tier;
+        private readonly string _marketName;
 
         public static readonly JsonSerializerSettings JsonSettings = new()
         {
@@ -112,6 +112,10 @@ namespace QuantConnect.FTXBrokerage
             _apiKey = apiKey;
             _apiSecret = apiSecret;
             _restClient = restClient;
+
+            _marketName = _restClient.BaseUrl?.Host.Equals("ftx.us", StringComparison.OrdinalIgnoreCase) == true
+                ? "FTXUS"
+                : "FTX";
 
             if (string.IsNullOrEmpty(tier))
             {
@@ -349,9 +353,9 @@ namespace QuantConnect.FTXBrokerage
 
             request.AddHeaders(new List<KeyValuePair<string, string>>
             {
-                new ("FTX-KEY", _apiKey),
-                new ("FTX-SIGN", sign),
-                new ("FTX-TS", nonce.ToString())
+                new ($"{_marketName}-KEY", _apiKey),
+                new ($"{_marketName}-SIGN", sign),
+                new ($"{_marketName}-TS", nonce.ToString())
             });
 
             return request;

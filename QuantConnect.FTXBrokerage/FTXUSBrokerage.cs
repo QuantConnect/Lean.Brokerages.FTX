@@ -109,7 +109,8 @@ namespace QuantConnect.FTXBrokerage
                 null,
                 null,
                 aggregator,
-                job);
+                job,
+                Market.FTXUS);
         }
     }
 }
