@@ -47,8 +47,7 @@ namespace QuantConnect.FTXBrokerage
     public partial class FTXBrokerage : BaseWebsocketsBrokerage, IDataQueueHandler
     {
         private bool _isAuthenticated;
-
-        private string _market;
+        
         private LiveNodePacket _job;
         private IDataAggregator _aggregator;
         private IOrderProvider _orderProvider;
@@ -70,6 +69,8 @@ namespace QuantConnect.FTXBrokerage
         /// Returns true if we're currently connected to the broker
         /// </summary>
         public override bool IsConnected => WebSocket.IsOpen && _isAuthenticated;
+
+        protected string MarketName => Name.ToLowerInvariant();
 
         /// <summary>
         /// Parameterless constructor for brokerage
@@ -187,7 +188,7 @@ namespace QuantConnect.FTXBrokerage
 
             foreach (var ftxOrder in openOrders)
             {
-                var symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market, SecurityType.Crypto, _market);
+                var symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market, SecurityType.Crypto, MarketName);
                 Orders.Order leanOrder;
                 switch (ftxOrder)
                 {
@@ -575,7 +576,7 @@ namespace QuantConnect.FTXBrokerage
             _securityProvider = securityProvider;
             _job = job;
             _aggregator = aggregator;
-            _symbolMapper = new(exchangeName.ToUpperInvariant());
+            _symbolMapper = new(exchangeName);
 
             SubscriptionManager = new BrokerageMultiWebSocketSubscriptionManager(
                 wssUrl,

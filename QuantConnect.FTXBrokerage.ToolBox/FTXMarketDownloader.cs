@@ -13,7 +13,6 @@
  * limitations under the License.
 */
 
-using QuantConnect.Configuration;
 using QuantConnect.ToolBox;
 using System.Collections.Generic;
 using System.Linq;
