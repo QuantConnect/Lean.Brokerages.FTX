@@ -42,12 +42,15 @@ namespace QuantConnect.FTXBrokerage
             { "Tier4", 6 },
             { "Tier5", 6 },
             { "Tier6", 6 },
-            { "VIP1", 10 },
+            { "Tier7", 6 },
+            { "Tier8", 6 },
+            { "Tier9", 6 },
+            { "VIP1", 12 },
             { "VIP2", 30 },
-            { "VIP3", 30 },
-            { "MM1", 10 },
+            { "VIP3", 50 },
+            { "MM1", 12 },
             { "MM2", 30 },
-            { "MM3", 30 }
+            { "MM3", 50 }
         };
 
 
