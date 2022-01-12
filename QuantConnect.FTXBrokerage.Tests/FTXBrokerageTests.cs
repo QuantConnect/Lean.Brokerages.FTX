@@ -22,7 +22,6 @@ using QuantConnect.Orders;
 using QuantConnect.Packets;
 using QuantConnect.Securities;
 using QuantConnect.Tests.Brokerages;
-using System;
 using System.Collections.Generic;
 
 namespace QuantConnect.FTXBrokerage.Tests
@@ -39,7 +38,7 @@ namespace QuantConnect.FTXBrokerage.Tests
         protected override IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider)
             => CreateBrokerage(orderProvider, securityProvider, new LiveNodePacket());
 
-        private IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider, LiveNodePacket liveNodePacket)
+        protected virtual IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider, LiveNodePacket liveNodePacket)
         {
             ((SecurityProvider)securityProvider)[Symbol] = CreateSecurity(Symbol);
 
@@ -135,13 +134,12 @@ namespace QuantConnect.FTXBrokerage.Tests
         [Test]
         public void GetAccountHoldingsClearCache()
         {
-            var brokerage = new FTXBrokerage(
+            var brokerage = CreateBrokerage(
                 Mock.Of<IOrderProvider>(),
                 Mock.Of<ISecurityProvider>(),
-                new AggregationManager(),
-                new LiveNodePacket()
+                new LiveNodePacket
                 {
-                    BrokerageData = new Dictionary<string, string>()
+                    BrokerageData = new Dictionary<string, string>
                     {
                         { "live-holdings", "[{\"AveragePrice\": 5,\"Quantity\": 33,\"Symbol\": {\"Value\": \"GME\",\"ID\": \"GME 2T\",\"Permtick\": \"GME\"},\"MarketPrice\": 10, \"Type\":1 }]" }
                     }
