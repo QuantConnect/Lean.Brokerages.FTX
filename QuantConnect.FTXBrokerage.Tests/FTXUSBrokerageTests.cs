@@ -13,28 +13,32 @@
  * limitations under the License.
 */
 
+using Moq;
 using NUnit.Framework;
 using QuantConnect.Configuration;
 using QuantConnect.Interfaces;
 using QuantConnect.Lean.Engine.DataFeeds;
+using QuantConnect.Orders;
 using QuantConnect.Packets;
 using QuantConnect.Securities;
 using QuantConnect.Tests.Brokerages;
+using System.Collections.Generic;
 
 namespace QuantConnect.FTXBrokerage.Tests
 {
     [TestFixture]
     [Explicit("This test requires a configured and testable FTX.US practice account")]
-    public partial class FTXUSBrokerageTests : FTXBrokerageTests
+    public partial class FTXUSBrokerageTests : BrokerageTests
     {
-        private static readonly Symbol SUSHI_USDT = Symbol.Create("SUCHIUSDT", SecurityType.Crypto, Market.FTXUS);
+        private static readonly Symbol SUSHI_USDT = Symbol.Create("SUSHIUSDT", SecurityType.Crypto, Market.FTXUS);
 
         protected override Symbol Symbol => SUSHI_USDT;
+        protected override SecurityType SecurityType => SecurityType.Crypto;
 
         protected override IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider)
             => CreateBrokerage(orderProvider, securityProvider, new LiveNodePacket());
 
-        protected override IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider, LiveNodePacket liveNodePacket)
+        private IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider, LiveNodePacket liveNodePacket)
         {
             ((SecurityProvider)securityProvider)[Symbol] = CreateSecurity(Symbol);
 
@@ -51,6 +55,99 @@ namespace QuantConnect.FTXBrokerage.Tests
                 new AggregationManager(),
                 liveNodePacket
             );
+        }
+
+        protected override bool IsAsync() => true;
+
+        protected override bool IsCancelAsync() => false;
+
+        // not user, we don't allow update orders
+        protected override decimal GetAskPrice(Symbol symbol) => decimal.Zero;
+
+        /// <summary>
+        /// Provides the data required to test each order type in various cases
+        /// </summary>
+        private static TestCaseData[] OrderParameters()
+        {
+            return new[]
+            {
+                new TestCaseData(new MarketOrderTestParameters(SUSHI_USDT)).SetName("MarketOrder"),
+                new TestCaseData(new NonUpdateableLimitOrderTestParameters(SUSHI_USDT, 1.5m, 0.5m)).SetName("LimitOrder"),
+                new TestCaseData(new NonUpdateableStopMarketOrderTestParameters(SUSHI_USDT, 1.5m, 0.5m)).SetName("StopMarketOrder"),
+                new TestCaseData(new NonUpdateableStopLimitOrderTestParameters(SUSHI_USDT, 1.5m, 0.5m)).SetName("StopLimitOrder")
+            };
+        }
+
+        [Test, TestCaseSource(nameof(OrderParameters))]
+        public override void CancelOrders(OrderTestParameters parameters)
+        {
+            base.CancelOrders(parameters);
+        }
+
+        [Test, TestCaseSource(nameof(OrderParameters))]
+        public override void LongFromZero(OrderTestParameters parameters)
+        {
+            base.LongFromZero(parameters);
+        }
+
+        [Test, TestCaseSource(nameof(OrderParameters))]
+        public override void CloseFromLong(OrderTestParameters parameters)
+        {
+            base.CloseFromLong(parameters);
+        }
+
+        [Test, TestCaseSource(nameof(OrderParameters))]
+        public override void ShortFromZero(OrderTestParameters parameters)
+        {
+            base.ShortFromZero(parameters);
+        }
+
+        [Test, TestCaseSource(nameof(OrderParameters))]
+        public override void CloseFromShort(OrderTestParameters parameters)
+        {
+            base.CloseFromShort(parameters);
+        }
+
+        [Test, TestCaseSource(nameof(OrderParameters))]
+        public override void ShortFromLong(OrderTestParameters parameters)
+        {
+            base.ShortFromLong(parameters);
+        }
+
+        [Test, TestCaseSource(nameof(OrderParameters))]
+        public override void LongFromShort(OrderTestParameters parameters)
+        {
+            base.LongFromShort(parameters);
+        }
+
+        protected override void ModifyOrderUntilFilled(Order order, OrderTestParameters parameters, double secondsTimeout = 90)
+        {
+            Assert.Pass("Order update not supported. Please cancel and re-create.");
+        }
+
+        [Test]
+        public override void GetAccountHoldings()
+        {
+            Assert.IsEmpty(Brokerage.GetAccountHoldings());
+        }
+
+        [Test]
+        public void GetAccountHoldingsClearCache()
+        {
+            var brokerage = CreateBrokerage(
+                Mock.Of<IOrderProvider>(),
+                Mock.Of<ISecurityProvider>(),
+                new LiveNodePacket
+                {
+                    BrokerageData = new Dictionary<string, string>
+                    {
+                        { "live-holdings", "[{\"AveragePrice\": 5,\"Quantity\": 33,\"Symbol\": {\"Value\": \"GME\",\"ID\": \"GME 2T\",\"Permtick\": \"GME\"},\"MarketPrice\": 10, \"Type\":1 }]" }
+                    }
+                }
+            );
+
+            Assert.IsNotEmpty(brokerage.GetAccountHoldings());
+            Assert.IsEmpty(brokerage.GetAccountHoldings());
         }
     }
 }

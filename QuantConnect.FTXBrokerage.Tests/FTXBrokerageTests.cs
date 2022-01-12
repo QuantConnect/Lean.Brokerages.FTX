@@ -38,7 +38,7 @@ namespace QuantConnect.FTXBrokerage.Tests
         protected override IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider)
             => CreateBrokerage(orderProvider, securityProvider, new LiveNodePacket());
 
-        protected virtual IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider, LiveNodePacket liveNodePacket)
+        private IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider, LiveNodePacket liveNodePacket)
         {
             ((SecurityProvider)securityProvider)[Symbol] = CreateSecurity(Symbol);
 
