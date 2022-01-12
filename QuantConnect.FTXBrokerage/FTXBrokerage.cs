@@ -76,7 +76,7 @@ namespace QuantConnect.FTXBrokerage
         /// Parameterless constructor for brokerage
         /// </summary>
         /// <remarks>This parameterless constructor is required for brokerages implementing <see cref="IDataQueueHandler"/></remarks>
-        public FTXBrokerage() : base("FTX")
+        public FTXBrokerage() : base(Market.FTX)
         {
         }
 

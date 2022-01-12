@@ -30,9 +30,9 @@ namespace QuantConnect.FTXBrokerage.Tests
     [Explicit("This test requires a configured and testable FTX.US practice account")]
     public partial class FTXUSBrokerageTests : BrokerageTests
     {
-        private static readonly Symbol SUSHI_USDT = Symbol.Create("SUSHIUSDT", SecurityType.Crypto, Market.FTXUS);
+        private static readonly Symbol SUSHI_USD = Symbol.Create("SUSHIUSD", SecurityType.Crypto, Market.FTXUS);
 
-        protected override Symbol Symbol => SUSHI_USDT;
+        protected override Symbol Symbol => SUSHI_USD;
         protected override SecurityType SecurityType => SecurityType.Crypto;
 
         protected override IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider)
@@ -71,10 +71,10 @@ namespace QuantConnect.FTXBrokerage.Tests
         {
             return new[]
             {
-                new TestCaseData(new MarketOrderTestParameters(SUSHI_USDT)).SetName("MarketOrder"),
-                new TestCaseData(new NonUpdateableLimitOrderTestParameters(SUSHI_USDT, 1.5m, 0.5m)).SetName("LimitOrder"),
-                new TestCaseData(new NonUpdateableStopMarketOrderTestParameters(SUSHI_USDT, 1.5m, 0.5m)).SetName("StopMarketOrder"),
-                new TestCaseData(new NonUpdateableStopLimitOrderTestParameters(SUSHI_USDT, 1.5m, 0.5m)).SetName("StopLimitOrder")
+                new TestCaseData(new MarketOrderTestParameters(SUSHI_USD)).SetName("MarketOrder"),
+                new TestCaseData(new NonUpdateableLimitOrderTestParameters(SUSHI_USD, 6m, 5m)).SetName("LimitOrder"),
+                new TestCaseData(new NonUpdateableStopMarketOrderTestParameters(SUSHI_USD, 8m, 5m)).SetName("StopMarketOrder"),
+                new TestCaseData(new NonUpdateableStopLimitOrderTestParameters(SUSHI_USD, 8m, 5m)).SetName("StopLimitOrder")
             };
         }
 
@@ -136,7 +136,7 @@ namespace QuantConnect.FTXBrokerage.Tests
         {
             var brokerage = CreateBrokerage(
                 Mock.Of<IOrderProvider>(),
-                Mock.Of<ISecurityProvider>(),
+                new SecurityProvider(),
                 new LiveNodePacket
                 {
                     BrokerageData = new Dictionary<string, string>

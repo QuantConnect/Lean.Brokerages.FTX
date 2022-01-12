@@ -136,7 +136,7 @@ namespace QuantConnect.FTXBrokerage.Tests
         {
             var brokerage = CreateBrokerage(
                 Mock.Of<IOrderProvider>(),
-                Mock.Of<ISecurityProvider>(),
+                new SecurityProvider(),
                 new LiveNodePacket
                 {
                     BrokerageData = new Dictionary<string, string>
