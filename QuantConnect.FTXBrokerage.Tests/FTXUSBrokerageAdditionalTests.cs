@@ -34,7 +34,7 @@ namespace QuantConnect.FTXBrokerage.Tests
         {
             var brokerage = Composer.Instance.GetExportedValueByTypeName<IBrokerage>("FTXUSBrokerage");
             Assert.IsNotNull(brokerage);
-            Assert.AreEqual("FTXUS", brokerage.Name);
+            Assert.AreEqual(Market.FTXUS.ToUpperInvariant(), brokerage.Name);
         }
     }
 }

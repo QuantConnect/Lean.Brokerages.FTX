@@ -47,7 +47,7 @@ namespace QuantConnect.FTXBrokerage
     public partial class FTXBrokerage : BaseWebsocketsBrokerage, IDataQueueHandler
     {
         private bool _isAuthenticated;
-        
+
         private LiveNodePacket _job;
         private IDataAggregator _aggregator;
         private IOrderProvider _orderProvider;
@@ -76,7 +76,16 @@ namespace QuantConnect.FTXBrokerage
         /// Parameterless constructor for brokerage
         /// </summary>
         /// <remarks>This parameterless constructor is required for brokerages implementing <see cref="IDataQueueHandler"/></remarks>
-        public FTXBrokerage() : base(Market.FTX)
+        public FTXBrokerage() : this(Market.FTX)
+        {
+        }
+
+        /// <summary>
+        /// Template constructor for brokerage parameterless constructor
+        /// </summary>
+        /// <remarks>This constructor is required for brokerages implementing <see cref="IDataQueueHandler"/></remarks>
+        protected FTXBrokerage(string marketName)
+            : base(marketName.ToUpperInvariant())
         {
         }
 
