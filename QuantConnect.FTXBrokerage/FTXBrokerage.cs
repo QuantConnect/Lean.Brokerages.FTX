@@ -139,8 +139,8 @@ namespace QuantConnect.FTXBrokerage
             apiKey,
             apiSecret,
             accountTier,
-            "https://ftx.com/api",
-            "wss://ftx.com/ws/",
+            FTXRestApiClient.FtxRestEndpoint,
+            FTXRestApiClient.FtxWsEndpoint,
             orderProvider,
             securityProvider,
             aggregator,
@@ -216,7 +216,7 @@ namespace QuantConnect.FTXBrokerage
                         }
                     default:
                         OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, -1,
-                            "FTXBrokerage.GetOpenOrders: Unsupported order type returned from brokerage: " + ftxOrder.Type));
+                            $"{Name}Brokerage.GetOpenOrders: Unsupported order type returned from brokerage: " + ftxOrder.Type));
                         continue;
                 }
 
@@ -311,7 +311,7 @@ namespace QuantConnect.FTXBrokerage
                         default:
                             {
                                 throw new NotSupportedException(
-                                    $"FTXBrokerage.PlaceOrder: Unsupported order type: {order.Type}");
+                                    $"{Name}Brokerage.PlaceOrder: Unsupported order type: {order.Type}");
                             }
                     }
 
@@ -323,7 +323,7 @@ namespace QuantConnect.FTXBrokerage
                             order,
                             resultOrder.CreatedAt,
                             OrderFee.Zero,
-                            "FTX Order Event")
+                            $"{Name} Order Event")
                     { Status = OrderStatus.Submitted }
                     );
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Information, 0, $"Order submitted successfully - OrderId: {order.Id}"));
@@ -340,7 +340,7 @@ namespace QuantConnect.FTXBrokerage
                             order,
                             DateTime.UtcNow,
                             OrderFee.Zero,
-                            "FTX Order Event")
+                            $"{Name} Order Event")
                     { Status = OrderStatus.Invalid, Message = e.Message });
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, -1, e.Message));
                 }
@@ -360,7 +360,7 @@ namespace QuantConnect.FTXBrokerage
             // Order's queue priority will be reset, and the order ID of the modified order will be different from that of the original order.
             // Also note: this is implemented as cancelling and replacing your order.
             // There's a chance that the order meant to be cancelled gets filled and its replacement still gets placed.
-            throw new NotSupportedException("FTXBrokerage.UpdateOrder: Order update not supported. Please cancel and re-create.");
+            throw new NotSupportedException($"{Name}Brokerage.UpdateOrder: Order update not supported. Please cancel and re-create.");
         }
 
         /// <summary>
@@ -416,7 +416,7 @@ namespace QuantConnect.FTXBrokerage
                             }
                         default:
                             {
-                                throw new NotSupportedException($"FTXBrokerage.PlaceOrder: Unsupported order type: {order.Type}");
+                                throw new NotSupportedException($"{Name}Brokerage.PlaceOrder: Unsupported order type: {order.Type}");
                             }
 
                     }
@@ -442,7 +442,7 @@ namespace QuantConnect.FTXBrokerage
                             order,
                             DateTime.UtcNow,
                             OrderFee.Zero,
-                            "FTX Order Event")
+                            $"{Name} Order Event")
                     { Status = OrderStatus.Invalid, Message = e.Message });
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, -1, e.Message));
                 }
@@ -533,7 +533,7 @@ namespace QuantConnect.FTXBrokerage
             // Fetch the data
             while (currentStartTime < lastRequestedBarEndTime)
             {
-                Log.Debug($"FTXBrokerage.GetHistory(): Fetching data from {currentStartTime:g} to {currentEndTime:g} for {request.Symbol.Value}");
+                Log.Debug($"{Name}Brokerage.GetHistory(): Fetching data from {currentStartTime:g} to {currentEndTime:g} for {request.Symbol.Value}");
 
                 foreach (var candle in _restApiClient.GetHistoricalPrices(brokerageSymbol, resolutionInSeconds, currentStartTime, currentEndTime))
                 {
@@ -626,7 +626,7 @@ namespace QuantConnect.FTXBrokerage
             // avoid race condition with placing an order and getting filled events before finished placing
             _messageHandler = new BrokerageConcurrentMessageHandler<WebSocketMessage>(OnUserDataImpl);
 
-            _restApiClient = new FTXRestApiClient(RestClient, apiKey, apiSecret, accountTier);
+            _restApiClient = new FTXRestApiClient(RestClient, apiKey, apiSecret, MarketName, accountTier);
             _webSocketResetEvents.AddOrUpdate(WebSocket, new ManualResetEvent(false));
         }
 

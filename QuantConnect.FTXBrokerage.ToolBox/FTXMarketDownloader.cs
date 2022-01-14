@@ -35,10 +35,10 @@ namespace QuantConnect.FTXBrokerage.ToolBox
         {
             Market = market;
             var restUrl = market == QuantConnect.Market.FTXUS
-                ? "https://ftx.us/api"
-                : "https://ftx.com/api";
+                ? FTXRestApiClient.FtxUsRestEndpoint
+                : FTXRestApiClient.FtxRestEndpoint;
 
-            _client = new FTXRestApiClient(restUrl);
+            _client = new FTXRestApiClient(restUrl, market);
         }
 
         /// <summary>

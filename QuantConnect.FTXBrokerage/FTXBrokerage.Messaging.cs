@@ -54,7 +54,7 @@ namespace QuantConnect.FTXBrokerage
                 args = _restApiClient.GenerateAuthPayloadForWebSocketApi()
             }));
 
-            Log.Trace("FTXBrokerage.Auth(): Sent authentication request.");
+            Log.Trace($"{Name}Brokerage.Auth(): Sent authentication request.");
         }
 
         private void OnUserDataImpl(WebSocketMessage webSocketMessage)
@@ -141,7 +141,7 @@ namespace QuantConnect.FTXBrokerage
             {
                 if (Log.DebuggingEnabled)
                 {
-                    Log.Debug($"FTXBrokerage.OnMessageImpl(): {e.Message}");
+                    Log.Debug($"{Name}Brokerage.OnMessageImpl(): {e.Message}");
                 }
 
                 var obj = JsonConvert.DeserializeObject<JObject>(e.Message, FTXRestApiClient.JsonSettings);
@@ -259,7 +259,7 @@ namespace QuantConnect.FTXBrokerage
 
                 if (!_orderBooks.TryGetValue(symbol, out var orderBook))
                 {
-                    throw new Exception($"FTXBRokerage.OnOrderbookUpdate: orderbook is not initialized for {market}.");
+                    throw new Exception($"{Name}BRokerage.OnOrderbookUpdate: orderbook is not initialized for {market}.");
                 }
 
                 for (var i = 0; i < update.Bids.Length; i++)
@@ -311,7 +311,7 @@ namespace QuantConnect.FTXBrokerage
                 }
 
                 var newStatus = ConvertOrderStatus(order);
-                OnOrderEvent(new OrderEvent(foundOrder, DateTime.UtcNow, OrderFee.Zero, "FTX Order Event")
+                OnOrderEvent(new OrderEvent(foundOrder, DateTime.UtcNow, OrderFee.Zero, $"{Name} Order Event")
                 {
                     Status = newStatus
                 });
@@ -367,7 +367,7 @@ namespace QuantConnect.FTXBrokerage
                 (
                     order.Id, symbol, fill.Time, status,
                     fill.Side, fillPrice, fillQuantity,
-                    orderFee, $"FTX Fill Event {fill.Side}"
+                    orderFee, $"{Name} Fill Event {fill.Side}"
                 );
 
                 OnOrderEvent(orderEvent);

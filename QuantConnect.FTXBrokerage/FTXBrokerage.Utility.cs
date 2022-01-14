@@ -37,7 +37,7 @@ namespace QuantConnect.FTXBrokerage
                     return new MarketOrder(leanSymbol, ftxOrder.Quantity, ftxOrder.CreatedAt);
                 default:
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, -1,
-                        $"FTXBrokerage.GetOpenOrders: Unsupported order type returned from brokerage: {ftxOrder.Type}"));
+                        $"{Name}Brokerage.GetOpenOrders: Unsupported order type returned from brokerage: {ftxOrder.Type}"));
                     return null;
             }
         }
@@ -61,12 +61,12 @@ namespace QuantConnect.FTXBrokerage
                     {
                         // TAKE PROFIT is not currently supported, GH-6007
                         OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, -1,
-                            "FTXBrokerage.GetOpenOrders: TAKE PROFIT order type is not currently supported"));
+                            $"{Name}Brokerage.GetOpenOrders: TAKE PROFIT order type is not currently supported"));
                         return null;
                     }
                 default:
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, -1,
-                        $"FTXBrokerage.GetOpenOrders: Unsupported order type returned from brokerage: {ftxOrder.Type}"));
+                        $"{Name}Brokerage.GetOpenOrders: Unsupported order type returned from brokerage: {ftxOrder.Type}"));
                     return null;
             }
         }
