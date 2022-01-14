@@ -42,7 +42,7 @@ namespace QuantConnect.FTXBrokerage
             {
                 return null;
             }
-
+            
             var enumerator = _aggregator.Add(dataConfig, newDataAvailableHandler);
             SubscriptionManager.Subscribe(dataConfig);
 
@@ -163,7 +163,7 @@ namespace QuantConnect.FTXBrokerage
             return symbol.Value.IndexOfInvariant("universe", true) == -1
                    && _symbolMapper.IsKnownLeanSymbol(symbol)
                    && symbol.SecurityType == SecurityType.Crypto
-                   && symbol.ID.Market.Equals(Name, StringComparison.OrdinalIgnoreCase);
+                   && symbol.ID.Market.Equals(MarketName, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

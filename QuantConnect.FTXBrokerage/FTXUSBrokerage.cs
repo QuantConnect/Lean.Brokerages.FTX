@@ -19,7 +19,6 @@ using QuantConnect.Data;
 using QuantConnect.Interfaces;
 using QuantConnect.Packets;
 using QuantConnect.Securities;
-using QuantConnect.Util;
 
 namespace QuantConnect.FTXBrokerage
 {

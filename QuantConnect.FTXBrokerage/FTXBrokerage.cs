@@ -59,6 +59,8 @@ namespace QuantConnect.FTXBrokerage
 
         private const int MaximumSymbolsPerConnection = 12;
         private const int HistoricalDataPerRequestLimit = 1000;
+        
+        protected string MarketName;
 
         /// <summary>
         /// A list of currently active stop orders and their appropriate orders
@@ -69,8 +71,6 @@ namespace QuantConnect.FTXBrokerage
         /// Returns true if we're currently connected to the broker
         /// </summary>
         public override bool IsConnected => WebSocket.IsOpen && _isAuthenticated;
-
-        protected string MarketName => Name.ToLowerInvariant();
 
         /// <summary>
         /// Parameterless constructor for brokerage
@@ -87,6 +87,7 @@ namespace QuantConnect.FTXBrokerage
         protected FTXBrokerage(string marketName)
             : base(marketName.ToUpperInvariant())
         {
+            MarketName = marketName;
         }
 
         /// <summary>
@@ -586,6 +587,7 @@ namespace QuantConnect.FTXBrokerage
             _job = job;
             _aggregator = aggregator;
             _symbolMapper = new(exchangeName);
+            MarketName = exchangeName;
 
             SubscriptionManager = new BrokerageMultiWebSocketSubscriptionManager(
                 wssUrl,
