@@ -32,7 +32,8 @@ namespace QuantConnect.FTXBrokerage.Tests
     {
         private FTXBrokerage _brokerage;
 
-        public FTXBrokerageHistoryProviderTests()
+        [SetUp]
+        public void Init()
         {
             _brokerage = CreateBrokerage();
         }
