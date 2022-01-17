@@ -56,3 +56,5 @@ jobs:
         env:
           QC_FTX_API_KEY: ${{ secrets.FTX_API_KEY }}
           QC_FTX_API_SECRET: ${{ secrets.FTX_API_SECRET }}
+          QC_FTXUS_API_KEY: ${{ secrets.FTXUS_API_KEY }}
+          QC_FTXUS_API_SECRET: ${{ secrets.FTXUS_API_SECRET }}
