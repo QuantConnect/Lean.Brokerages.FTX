@@ -111,17 +111,5 @@ namespace QuantConnect.FTXBrokerage.Tests
         {
             base.LongFromShort(parameters);
         }
-
-        [Test]
-        public override void GetAccountHoldings()
-        {
-            base.GetAccountHoldings();
-        }
-
-        [Test]
-        public override void GetAccountHoldingsClearCache()
-        {
-            base.GetAccountHoldingsClearCache();
-        }
     }
 }

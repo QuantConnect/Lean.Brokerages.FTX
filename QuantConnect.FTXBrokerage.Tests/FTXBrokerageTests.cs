@@ -132,7 +132,7 @@ namespace QuantConnect.FTXBrokerage.Tests
         }
 
         [Test]
-        public virtual void GetAccountHoldingsClearCache()
+        public void GetAccountHoldingsClearCache()
         {
             var brokerage = CreateBrokerage(
                 Mock.Of<IOrderProvider>(),
