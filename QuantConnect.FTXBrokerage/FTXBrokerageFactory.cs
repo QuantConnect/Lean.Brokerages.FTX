@@ -50,11 +50,7 @@ namespace QuantConnect.FTXBrokerage
         public FTXBrokerageFactory() : base(typeof(FTXBrokerage))
         {
         }
-
-        public FTXBrokerageFactory(Type brokerageType) : base(brokerageType)
-        {
-        }
-
+        
         /// <summary>
         /// Gets a brokerage model that can be used to model this brokerage's unique behaviors
         /// </summary>
