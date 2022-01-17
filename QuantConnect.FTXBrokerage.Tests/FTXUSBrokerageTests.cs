@@ -28,12 +28,11 @@ namespace QuantConnect.FTXBrokerage.Tests
 {
     [TestFixture]
     [Explicit("This test requires a configured and testable FTX.US practice account")]
-    public partial class FTXUSBrokerageTests : BrokerageTests
+    public partial class FTXUSBrokerageTests : FTXBrokerageTests
     {
         private static readonly Symbol SUSHI_USD = Symbol.Create("SUSHIUSD", SecurityType.Crypto, Market.FTXUS);
 
         protected override Symbol Symbol => SUSHI_USD;
-        protected override SecurityType SecurityType => SecurityType.Crypto;
 
         protected override IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider)
             => CreateBrokerage(orderProvider, securityProvider, new LiveNodePacket());
@@ -56,13 +55,6 @@ namespace QuantConnect.FTXBrokerage.Tests
                 liveNodePacket
             );
         }
-
-        protected override bool IsAsync() => true;
-
-        protected override bool IsCancelAsync() => false;
-
-        // not user, we don't allow update orders
-        protected override decimal GetAskPrice(Symbol symbol) => decimal.Zero;
 
         /// <summary>
         /// Provides the data required to test each order type in various cases
@@ -120,34 +112,16 @@ namespace QuantConnect.FTXBrokerage.Tests
             base.LongFromShort(parameters);
         }
 
-        protected override void ModifyOrderUntilFilled(Order order, OrderTestParameters parameters, double secondsTimeout = 90)
-        {
-            Assert.Pass("Order update not supported. Please cancel and re-create.");
-        }
-
         [Test]
         public override void GetAccountHoldings()
         {
-            Assert.IsEmpty(Brokerage.GetAccountHoldings());
+            base.GetAccountHoldings();
         }
 
         [Test]
-        public void GetAccountHoldingsClearCache()
+        public override void GetAccountHoldingsClearCache()
         {
-            var brokerage = CreateBrokerage(
-                Mock.Of<IOrderProvider>(),
-                new SecurityProvider(),
-                new LiveNodePacket
-                {
-                    BrokerageData = new Dictionary<string, string>
-                    {
-                        { "live-holdings", "[{\"AveragePrice\": 5,\"Quantity\": 33,\"Symbol\": {\"Value\": \"GME\",\"ID\": \"GME 2T\",\"Permtick\": \"GME\"},\"MarketPrice\": 10, \"Type\":1 }]" }
-                    }
-                }
-            );
-
-            Assert.IsNotEmpty(brokerage.GetAccountHoldings());
-            Assert.IsEmpty(brokerage.GetAccountHoldings());
+            base.GetAccountHoldingsClearCache();
         }
     }
 }
