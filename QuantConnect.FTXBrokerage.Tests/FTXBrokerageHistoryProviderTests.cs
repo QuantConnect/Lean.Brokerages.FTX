@@ -32,14 +32,18 @@ namespace QuantConnect.FTXBrokerage.Tests
     {
         private FTXBrokerage _brokerage;
 
-        public FTXBrokerageHistoryProviderTests()
+        [SetUp]
+        public void Init()
         {
-            _brokerage = new FTXBrokerage(
+            _brokerage = CreateBrokerage();
+        }
+
+        protected virtual FTXBrokerage CreateBrokerage()
+            => new FTXBrokerage(
                 Mock.Of<IOrderProvider>(),
                 Mock.Of<ISecurityProvider>(),
                 null,
                 null);
-        }
 
         private static TestCaseData[] ValidTestParameters
         {
@@ -69,7 +73,7 @@ namespace QuantConnect.FTXBrokerage.Tests
         }
 
         [Test, TestCaseSource(nameof(ValidTestParameters))]
-        public void GetsHistoryForValid(Symbol symbol, Resolution resolution, TimeSpan period, TickType tickType, Type dataType)
+        public virtual void GetsHistoryForValid(Symbol symbol, Resolution resolution, TimeSpan period, TickType tickType, Type dataType)
         {
             int numberOfDataPoints = 0;
 
@@ -82,7 +86,7 @@ namespace QuantConnect.FTXBrokerage.Tests
         }
 
         [Test, TestCaseSource(nameof(InvalidTestParameters))]
-        public void GetsHistoryForInvalid(Symbol symbol, Resolution resolution, TimeSpan period, TickType tickType, Type dataType)
+        public virtual void GetsHistoryForInvalid(Symbol symbol, Resolution resolution, TimeSpan period, TickType tickType, Type dataType)
         {
             bool receievedWarning = false;
             EventHandler<BrokerageMessageEvent> messagEventHandler = (s, e) =>
@@ -101,7 +105,7 @@ namespace QuantConnect.FTXBrokerage.Tests
             _brokerage.Message += messagEventHandler;
         }
 
-        public int GetsHistory(Symbol symbol, Resolution resolution, TimeSpan period, TickType tickType, Type dataType)
+        protected int GetsHistory(Symbol symbol, Resolution resolution, TimeSpan period, TickType tickType, Type dataType)
         {
             var historyProvider = new BrokerageHistoryProvider();
             historyProvider.SetBrokerage(_brokerage);

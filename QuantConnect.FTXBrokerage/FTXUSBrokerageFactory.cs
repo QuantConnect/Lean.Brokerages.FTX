@@ -28,7 +28,7 @@ namespace QuantConnect.FTXBrokerage
     /// <summary>
     /// Provides a FTX implementation of BrokerageFactory
     /// </summary>
-    public class FTXBrokerageFactory : BrokerageFactory
+    public class FTXUSBrokerageFactory : BrokerageFactory
     {
         /// <summary>
         /// Gets the brokerage data required to run the brokerage from configuration/disk
@@ -39,24 +39,24 @@ namespace QuantConnect.FTXBrokerage
         /// </remarks>
         public override Dictionary<string, string> BrokerageData => new()
         {
-            { "ftx-api-key", Config.Get("ftx-api-key") },
-            { "ftx-api-secret", Config.Get("ftx-api-secret") },
-            { "ftx-account-tier", Config.Get("ftx-account-tier", "Tier1") }
+            { "ftxus-api-key", Config.Get("ftxus-api-key") },
+            { "ftxus-api-secret", Config.Get("ftxus-api-secret") },
+            { "ftxus-account-tier", Config.Get("ftxus-account-tier", "Tier1") }
         };
 
         /// <summary>
         /// Factory constructor
         /// </summary>
-        public FTXBrokerageFactory() : base(typeof(FTXBrokerage))
+        public FTXUSBrokerageFactory() : base(typeof(FTXUSBrokerage))
         {
         }
-        
+
         /// <summary>
         /// Gets a brokerage model that can be used to model this brokerage's unique behaviors
         /// </summary>
         /// <param name="orderProvider">The order provider</param>
         public override IBrokerageModel GetBrokerageModel(IOrderProvider orderProvider)
-            => new FTXBrokerageModel();
+            => new FTXUSBrokerageModel();
 
         /// <summary>
         /// Creates a new IBrokerage instance
@@ -67,9 +67,9 @@ namespace QuantConnect.FTXBrokerage
         public override IBrokerage CreateBrokerage(LiveNodePacket job, IAlgorithm algorithm)
         {
             var errors = new List<string>();
-            var apiKey = Read<string>(job.BrokerageData, "ftx-api-key", errors);
-            var apiSecret = Read<string>(job.BrokerageData, "ftx-api-secret", errors);
-            var accountTier = Read<string>(job.BrokerageData, "ftx-account-tier", errors);
+            var apiKey = Read<string>(job.BrokerageData, "ftxus-api-key", errors);
+            var apiSecret = Read<string>(job.BrokerageData, "ftxus-api-secret", errors);
+            var accountTier = Read<string>(job.BrokerageData, "ftxus-account-tier", errors);
 
             if (errors.Count != 0)
             {
@@ -77,7 +77,7 @@ namespace QuantConnect.FTXBrokerage
                 throw new ArgumentException(string.Join(Environment.NewLine, errors));
             }
 
-            var brokerage = new FTXBrokerage(
+            var brokerage = new FTXUSBrokerage(
                 apiKey,
                 apiSecret,
                 accountTier,

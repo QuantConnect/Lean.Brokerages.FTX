@@ -53,12 +53,14 @@ namespace QuantConnect.FTXBrokerage
         private IOrderProvider _orderProvider;
         private ISecurityProvider _securityProvider;
         private BrokerageConcurrentMessageHandler<WebSocketMessage> _messageHandler;
-        private readonly SymbolPropertiesDatabaseSymbolMapper _symbolMapper = new(Market.FTX);
+        private SymbolPropertiesDatabaseSymbolMapper _symbolMapper;
         private Timer _keepAliveTimer;
         private FTXRestApiClient _restApiClient;
 
         private const int MaximumSymbolsPerConnection = 12;
         private const int HistoricalDataPerRequestLimit = 1000;
+        
+        protected string MarketName;
 
         /// <summary>
         /// A list of currently active stop orders and their appropriate orders
@@ -74,8 +76,18 @@ namespace QuantConnect.FTXBrokerage
         /// Parameterless constructor for brokerage
         /// </summary>
         /// <remarks>This parameterless constructor is required for brokerages implementing <see cref="IDataQueueHandler"/></remarks>
-        public FTXBrokerage(): base("FTX")
+        public FTXBrokerage() : this(Market.FTX)
         {
+        }
+
+        /// <summary>
+        /// Template constructor for brokerage parameterless constructor
+        /// </summary>
+        /// <remarks>This constructor is required for brokerages implementing <see cref="IDataQueueHandler"/></remarks>
+        protected FTXBrokerage(string marketName)
+            : base(marketName.ToUpperInvariant())
+        {
+            MarketName = marketName;
         }
 
         /// <summary>
@@ -124,10 +136,47 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="securityProvider">The security provider used to give access to algorithm securities</param>
         /// <param name="aggregator">consolidate ticks</param>
         /// <param name="job">The live job packet</param>
-        public FTXBrokerage(string apiKey, string apiSecret, string accountTier, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job) 
-            : base("FTX")
+        public FTXBrokerage(string apiKey, string apiSecret, string accountTier, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job) : this(
+            apiKey,
+            apiSecret,
+            accountTier,
+            FTXRestApiClient.FtxRestEndpoint,
+            FTXRestApiClient.FtxWsEndpoint,
+            orderProvider,
+            securityProvider,
+            aggregator,
+            job,
+            Market.FTX)
         {
-            Initialize(apiKey, apiSecret, accountTier, orderProvider, securityProvider, aggregator, job);
+        }
+
+        /// <summary>
+        /// Creates a new instance
+        /// </summary>
+        /// <param name="apiKey">api key</param>
+        /// <param name="apiSecret">api secret</param>
+        /// <param name="accountTier">account tier</param>
+        /// <param name="restApiUrl">FTX API Endpoint url</param>
+        /// <param name="wssUrl">WSS endpoint</param>
+        /// <param name="orderProvider">An instance of IOrderProvider used to fetch Order objects by brokerage ID</param>
+        /// <param name="securityProvider">The security provider used to give access to algorithm securities</param>
+        /// <param name="aggregator">consolidate ticks</param>
+        /// <param name="job">The live job packet</param>
+        /// <param name="exchangeName">exchange name</param>
+        protected FTXBrokerage(
+            string apiKey,
+            string apiSecret,
+            string accountTier,
+            string restApiUrl,
+            string wssUrl,
+            IOrderProvider orderProvider,
+            ISecurityProvider securityProvider,
+            IDataAggregator aggregator,
+            LiveNodePacket job,
+            string exchangeName) : base(
+            exchangeName.ToUpperInvariant())
+        {
+            Initialize(apiKey, apiSecret, accountTier, restApiUrl, wssUrl, orderProvider, securityProvider, aggregator, job, exchangeName);
         }
 
         #region Brokerage
@@ -149,7 +198,7 @@ namespace QuantConnect.FTXBrokerage
 
             foreach (var ftxOrder in openOrders)
             {
-                var symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market, SecurityType.Crypto, Market.FTX);
+                var symbol = _symbolMapper.GetLeanSymbol(ftxOrder.Market, SecurityType.Crypto, MarketName);
                 Orders.Order leanOrder;
                 switch (ftxOrder)
                 {
@@ -168,7 +217,7 @@ namespace QuantConnect.FTXBrokerage
                         }
                     default:
                         OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, -1,
-                            "FTXBrokerage.GetOpenOrders: Unsupported order type returned from brokerage: " + ftxOrder.Type));
+                            $"{Name}Brokerage.GetOpenOrders: Unsupported order type returned from brokerage: " + ftxOrder.Type));
                         continue;
                 }
 
@@ -195,7 +244,6 @@ namespace QuantConnect.FTXBrokerage
         {
             return base.GetAccountHoldings(_job?.BrokerageData, (_securityProvider as SecurityPortfolioManager)?.Securities.Values);
         }
-
 
         /// <summary>
         /// Gets the current cash balance for each currency held in the brokerage account
@@ -264,7 +312,7 @@ namespace QuantConnect.FTXBrokerage
                         default:
                             {
                                 throw new NotSupportedException(
-                                    $"FTXBrokerage.PlaceOrder: Unsupported order type: {order.Type}");
+                                    $"{Name}Brokerage.PlaceOrder: Unsupported order type: {order.Type}");
                             }
                     }
 
@@ -276,7 +324,7 @@ namespace QuantConnect.FTXBrokerage
                             order,
                             resultOrder.CreatedAt,
                             OrderFee.Zero,
-                            "FTX Order Event")
+                            $"{Name} Order Event")
                     { Status = OrderStatus.Submitted }
                     );
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Information, 0, $"Order submitted successfully - OrderId: {order.Id}"));
@@ -293,7 +341,7 @@ namespace QuantConnect.FTXBrokerage
                             order,
                             DateTime.UtcNow,
                             OrderFee.Zero,
-                            "FTX Order Event")
+                            $"{Name} Order Event")
                     { Status = OrderStatus.Invalid, Message = e.Message });
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, -1, e.Message));
                 }
@@ -313,7 +361,7 @@ namespace QuantConnect.FTXBrokerage
             // Order's queue priority will be reset, and the order ID of the modified order will be different from that of the original order.
             // Also note: this is implemented as cancelling and replacing your order.
             // There's a chance that the order meant to be cancelled gets filled and its replacement still gets placed.
-            throw new NotSupportedException("FTXBrokerage.UpdateOrder: Order update not supported. Please cancel and re-create.");
+            throw new NotSupportedException($"{Name}Brokerage.UpdateOrder: Order update not supported. Please cancel and re-create.");
         }
 
         /// <summary>
@@ -369,7 +417,7 @@ namespace QuantConnect.FTXBrokerage
                             }
                         default:
                             {
-                                throw new NotSupportedException($"FTXBrokerage.PlaceOrder: Unsupported order type: {order.Type}");
+                                throw new NotSupportedException($"{Name}Brokerage.PlaceOrder: Unsupported order type: {order.Type}");
                             }
 
                     }
@@ -395,7 +443,7 @@ namespace QuantConnect.FTXBrokerage
                             order,
                             DateTime.UtcNow,
                             OrderFee.Zero,
-                            "FTX Order Event")
+                            $"{Name} Order Event")
                     { Status = OrderStatus.Invalid, Message = e.Message });
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, -1, e.Message));
                 }
@@ -486,7 +534,7 @@ namespace QuantConnect.FTXBrokerage
             // Fetch the data
             while (currentStartTime < lastRequestedBarEndTime)
             {
-                Log.Debug($"FTXBrokerage.GetHistory(): Fetching data from {currentStartTime:g} to {currentEndTime:g} for {request.Symbol.Value}");
+                Log.Debug($"{Name}Brokerage.GetHistory(): Fetching data from {currentStartTime:g} to {currentEndTime:g} for {request.Symbol.Value}");
 
                 foreach (var candle in _restApiClient.GetHistoricalPrices(brokerageSymbol, resolutionInSeconds, currentStartTime, currentEndTime))
                 {
@@ -520,23 +568,29 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="apiKey">api key</param>
         /// <param name="apiSecret">api secret</param>
         /// <param name="accountTier">account tier</param>
+        /// <param name="restApiUrl">FTX API Endpoint url</param>
+        /// <param name="wssUrl">WSS endpoint</param>
         /// <param name="orderProvider">An instance of IOrderProvider used to fetch Order objects by brokerage ID</param>
         /// <param name="securityProvider">The security provider used to give access to algorithm securities</param>
         /// <param name="aggregator">consolidate ticks</param>
         /// <param name="job">The live job packet</param>
-        protected void Initialize(string apiKey, string apiSecret, string accountTier, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job)
+        /// <param name="exchangeName">Ftx Exchange name either FTX or FTXUS</param>
+        protected void Initialize(string apiKey, string apiSecret, string accountTier, string restApiUrl, string wssUrl, IOrderProvider orderProvider, ISecurityProvider securityProvider, IDataAggregator aggregator, LiveNodePacket job, string exchangeName)
         {
             if (IsInitialized)
             {
                 return;
             }
-            base.Initialize(FTXRestApiClient.WsApiUrl, new WebSocketClientWrapper(), new RestClient(FTXRestApiClient.RestApiUrl),apiKey, apiSecret);
+            base.Initialize(wssUrl, new WebSocketClientWrapper(), new RestClient(restApiUrl), apiKey, apiSecret);
             _orderProvider = orderProvider;
             _securityProvider = securityProvider;
             _job = job;
             _aggregator = aggregator;
+            _symbolMapper = new(exchangeName);
+            MarketName = exchangeName;
+
             SubscriptionManager = new BrokerageMultiWebSocketSubscriptionManager(
-                FTXRestApiClient.WsApiUrl,
+                wssUrl,
                 MaximumSymbolsPerConnection,
                 maximumWebSocketConnections: 0,
                 null,
@@ -574,7 +628,7 @@ namespace QuantConnect.FTXBrokerage
             // avoid race condition with placing an order and getting filled events before finished placing
             _messageHandler = new BrokerageConcurrentMessageHandler<WebSocketMessage>(OnUserDataImpl);
 
-            _restApiClient = new FTXRestApiClient(RestClient, apiKey, apiSecret, accountTier);
+            _restApiClient = new FTXRestApiClient(RestClient, apiKey, apiSecret, MarketName, accountTier);
             _webSocketResetEvents.AddOrUpdate(WebSocket, new ManualResetEvent(false));
         }
 

@@ -13,12 +13,9 @@
  * limitations under the License.
 */
 
-using Newtonsoft.Json;
 using QuantConnect.ToolBox;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net;
 
 namespace QuantConnect.FTXBrokerage.ToolBox
 {
@@ -30,7 +27,19 @@ namespace QuantConnect.FTXBrokerage.ToolBox
         /// <summary>
         /// Market name
         /// </summary>
-        public string Market => QuantConnect.Market.FTX;
+        public string Market { get; }
+
+        private readonly FTXRestApiClient _client;
+
+        public FTXMarketDownloader(string market = QuantConnect.Market.FTX)
+        {
+            Market = market;
+            var restUrl = market == QuantConnect.Market.FTXUS
+                ? FTXRestApiClient.FtxUsRestEndpoint
+                : FTXRestApiClient.FtxRestEndpoint;
+
+            _client = new FTXRestApiClient(restUrl, market);
+        }
 
         /// <summary>
         /// Pulling data from a remote source
@@ -38,23 +47,21 @@ namespace QuantConnect.FTXBrokerage.ToolBox
         /// <returns>Enumerable of exchange info</returns>
         public IEnumerable<string> Get()
         {
-            var client = new FTXRestApiClient();
-
-            var exchangeInfo = client.GetAllMarkets();
+            var exchangeInfo = _client.GetAllMarkets();
 
             foreach (var symbol in exchangeInfo.Where(s => s.Type.Equals("spot")).OrderBy(x => x.Name))
             {
                 var leanSymbolName = symbol.Name.Replace("/", "");
-                yield return $"ftx,{leanSymbolName},crypto,{symbol.Name},{symbol.QuoteCurrency},1,{symbol.PriceIncrement.ToStringInvariant()},{symbol.SizeIncrement.ToStringInvariant()},{symbol.Name},{symbol.MinProvideSize.ToStringInvariant()}";
+                yield return $"{Market},{leanSymbolName},crypto,{symbol.Name},{symbol.QuoteCurrency},1,{symbol.PriceIncrement.ToStringInvariant()},{symbol.SizeIncrement.ToStringInvariant()},{symbol.Name},{symbol.MinProvideSize.ToStringInvariant()}";
             }
         }
 
         /// <summary>
         /// Endpoint for downloading exchange info
         /// </summary>
-        public static void ExchangeInfoDownloader()
+        public static void ExchangeInfoDownloader(string market = QuantConnect.Market.FTX)
         {
-            new ExchangeInfoUpdater(new FTXMarketDownloader())
+            new ExchangeInfoUpdater(new FTXMarketDownloader(market))
                 .Run();
         }
     }

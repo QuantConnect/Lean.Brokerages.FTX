@@ -49,6 +49,11 @@ namespace QuantConnect.FTXBrokerage.ToolBox
                         FTXHistoryDownloader.DownloadHistory(tickers, resolution, securityType, fromDate, toDate);
                         break;
 
+                    case "ftxusdl":
+                    case "ftxusdownloader":
+                        FTXHistoryDownloader.DownloadHistory(tickers, resolution, securityType, fromDate, toDate, Market.FTXUS);
+                        break;
+
                     default:
                         PrintMessageAndExit(1, "ERROR: Unrecognized --app value");
                         break;
@@ -61,6 +66,10 @@ namespace QuantConnect.FTXBrokerage.ToolBox
                     case "ftxspu":
                     case "ftxmarketupdater":
                         FTXMarketDownloader.ExchangeInfoDownloader();
+                        break;
+                    case "ftxusspu":
+                    case "ftxusmarketupdater":
+                        FTXMarketDownloader.ExchangeInfoDownloader(Market.FTXUS);
                         break;
                     default:
                         PrintMessageAndExit(1, "ERROR: Unrecognized --app value");

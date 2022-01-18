@@ -24,11 +24,7 @@ using QuantConnect.Orders.Fees;
 using QuantConnect.Securities;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
-using QuantConnect.Data.Fundamental;
-using Order = QuantConnect.FTXBrokerage.Messages.Order;
 
 namespace QuantConnect.FTXBrokerage
 {
@@ -58,7 +54,7 @@ namespace QuantConnect.FTXBrokerage
                 args = _restApiClient.GenerateAuthPayloadForWebSocketApi()
             }));
 
-            Log.Trace("FTXBrokerage.Auth(): Sent authentication request.");
+            Log.Trace($"{Name}Brokerage.Auth(): Sent authentication request.");
         }
 
         private void OnUserDataImpl(WebSocketMessage webSocketMessage)
@@ -145,7 +141,7 @@ namespace QuantConnect.FTXBrokerage
             {
                 if (Log.DebuggingEnabled)
                 {
-                    Log.Debug($"FTXBrokerage.OnMessageImpl(): {e.Message}");
+                    Log.Debug($"{Name}Brokerage.OnMessageImpl(): {e.Message}");
                 }
 
                 var obj = JsonConvert.DeserializeObject<JObject>(e.Message, FTXRestApiClient.JsonSettings);
@@ -198,7 +194,7 @@ namespace QuantConnect.FTXBrokerage
         {
             try
             {
-                var symbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Market.FTX);
+                var symbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, MarketName);
                 for (int i = 0; i < trades.Length; i++)
                 {
                     var trade = trades[i];
@@ -220,7 +216,7 @@ namespace QuantConnect.FTXBrokerage
         {
             try
             {
-                var symbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Market.FTX);
+                var symbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, MarketName);
 
                 if (!_orderBooks.TryGetValue(symbol, out var orderBook))
                 {
@@ -259,11 +255,11 @@ namespace QuantConnect.FTXBrokerage
         {
             try
             {
-                var symbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Market.FTX);
+                var symbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, MarketName);
 
                 if (!_orderBooks.TryGetValue(symbol, out var orderBook))
                 {
-                    throw new Exception($"FTXBRokerage.OnOrderbookUpdate: orderbook is not initialized for {market}.");
+                    throw new Exception($"{Name}BRokerage.OnOrderbookUpdate: orderbook is not initialized for {market}.");
                 }
 
                 for (var i = 0; i < update.Bids.Length; i++)
@@ -315,7 +311,7 @@ namespace QuantConnect.FTXBrokerage
                 }
 
                 var newStatus = ConvertOrderStatus(order);
-                OnOrderEvent(new OrderEvent(foundOrder, DateTime.UtcNow, OrderFee.Zero, "FTX Order Event")
+                OnOrderEvent(new OrderEvent(foundOrder, DateTime.UtcNow, OrderFee.Zero, $"{Name} Order Event")
                 {
                     Status = newStatus
                 });
@@ -345,7 +341,7 @@ namespace QuantConnect.FTXBrokerage
                     }
                 }
 
-                var symbol = _symbolMapper.GetLeanSymbol(fill.Market, SecurityType.Crypto, Market.FTX);
+                var symbol = _symbolMapper.GetLeanSymbol(fill.Market, SecurityType.Crypto, MarketName);
                 var fillPrice = fill.Price;
                 var fillQuantity = fill.Quantity;
                 var orderFee = new OrderFee(new CashAmount(Math.Abs(fill.Fee), fill.FeeCurrency));
@@ -371,7 +367,7 @@ namespace QuantConnect.FTXBrokerage
                 (
                     order.Id, symbol, fill.Time, status,
                     fill.Side, fillPrice, fillQuantity,
-                    orderFee, $"FTX Fill Event {fill.Side}"
+                    orderFee, $"{Name} Fill Event {fill.Side}"
                 );
 
                 OnOrderEvent(orderEvent);
@@ -446,7 +442,7 @@ namespace QuantConnect.FTXBrokerage
         /// <returns></returns>
         private Orders.Order FindRelatedTriggerOrder(ulong eventOrderId, string market)
         {
-            var orderSymbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, Market.FTX);
+            var orderSymbol = _symbolMapper.GetLeanSymbol(market, SecurityType.Crypto, MarketName);
 
             foreach (var (conditionalOrderId, triggerOrder) in _stopCachedOrderIDs)
             {

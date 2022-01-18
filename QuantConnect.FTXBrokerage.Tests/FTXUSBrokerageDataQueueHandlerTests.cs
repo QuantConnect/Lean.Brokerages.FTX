@@ -14,27 +14,30 @@
 */
 
 using NUnit.Framework;
-using QuantConnect.Interfaces;
-using QuantConnect.Util;
 
 namespace QuantConnect.FTXBrokerage.Tests
 {
     [TestFixture]
-    public class FTXBrokerageAdditionalTests
+    public partial class FTXUSBrokerageTests
     {
-        [Test]
-        public void ParameterlessConstructorComposerUsage()
+        private static TestCaseData[] TestParameters
         {
-            var brokerage = Composer.Instance.GetExportedValueByTypeName<IDataQueueHandler>("FTXBrokerage");
-            Assert.IsNotNull(brokerage);
+            get
+            {
+                return new[]
+                {
+                    // valid parameters, for example
+                    new TestCaseData(SUSHI_USD, Resolution.Tick, false),
+                    new TestCaseData(SUSHI_USD, Resolution.Minute, false),
+                    new TestCaseData(SUSHI_USD, Resolution.Second, false),
+                };
+            }
         }
 
-        [Test]
-        public void ParameterlessConstructorForBrokerage()
+        [Test, TestCaseSource(nameof(TestParameters))]
+        public void StreamsData(Symbol symbol, Resolution resolution, bool throwsException)
         {
-            var brokerage = Composer.Instance.GetExportedValueByTypeName<IBrokerage>("FTXBrokerage");
-            Assert.IsNotNull(brokerage);
-            Assert.AreEqual(Market.FTX.ToUpperInvariant(), brokerage.Name);
+            base.StreamsData(symbol, resolution, throwsException);
         }
     }
 }

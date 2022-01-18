@@ -27,13 +27,12 @@ using System.Collections.Generic;
 namespace QuantConnect.FTXBrokerage.Tests
 {
     [TestFixture]
-    [Explicit("This test requires a configured and testable FTX practice account")]
-    public partial class FTXBrokerageTests : BrokerageTests
+    [Explicit("This test requires a configured and testable FTX.US practice account")]
+    public partial class FTXUSBrokerageTests : FTXBrokerageTests
     {
-        private static readonly Symbol XRP_USDT = Symbol.Create("XRPUSDT", SecurityType.Crypto, Market.FTX);
+        private static readonly Symbol SUSHI_USD = Symbol.Create("SUSHIUSD", SecurityType.Crypto, Market.FTXUS);
 
-        protected override Symbol Symbol => XRP_USDT;
-        protected override SecurityType SecurityType => SecurityType.Crypto;
+        protected override Symbol Symbol => SUSHI_USD;
 
         protected override IBrokerage CreateBrokerage(IOrderProvider orderProvider, ISecurityProvider securityProvider)
             => CreateBrokerage(orderProvider, securityProvider, new LiveNodePacket());
@@ -42,11 +41,11 @@ namespace QuantConnect.FTXBrokerage.Tests
         {
             ((SecurityProvider)securityProvider)[Symbol] = CreateSecurity(Symbol);
 
-            var apiKey = Config.Get("ftx-api-key");
-            var apiSecret = Config.Get("ftx-api-secret");
-            var accountTier = Config.Get("ftx-account-tier");
+            var apiKey = Config.Get("ftxus-api-key");
+            var apiSecret = Config.Get("ftxus-api-secret");
+            var accountTier = Config.Get("ftxus-account-tier");
 
-            return new FTXBrokerage(
+            return new FTXUSBrokerage(
                 apiKey,
                 apiSecret,
                 accountTier,
@@ -57,13 +56,6 @@ namespace QuantConnect.FTXBrokerage.Tests
             );
         }
 
-        protected override bool IsAsync() => true;
-
-        protected override bool IsCancelAsync() => false;
-
-        // not user, we don't allow update orders
-        protected override decimal GetAskPrice(Symbol symbol) => decimal.Zero;
-
         /// <summary>
         /// Provides the data required to test each order type in various cases
         /// </summary>
@@ -71,10 +63,10 @@ namespace QuantConnect.FTXBrokerage.Tests
         {
             return new[]
             {
-                new TestCaseData(new MarketOrderTestParameters(XRP_USDT)).SetName("MarketOrder"),
-                new TestCaseData(new NonUpdateableLimitOrderTestParameters(XRP_USDT, 1.5m, 0.5m)).SetName("LimitOrder"),
-                new TestCaseData(new NonUpdateableStopMarketOrderTestParameters(XRP_USDT, 1.5m, 0.5m)).SetName("StopMarketOrder"),
-                new TestCaseData(new NonUpdateableStopLimitOrderTestParameters(XRP_USDT, 1.5m, 0.5m)).SetName("StopLimitOrder")
+                new TestCaseData(new MarketOrderTestParameters(SUSHI_USD)).SetName("MarketOrder"),
+                new TestCaseData(new NonUpdateableLimitOrderTestParameters(SUSHI_USD, 6m, 5m)).SetName("LimitOrder"),
+                new TestCaseData(new NonUpdateableStopMarketOrderTestParameters(SUSHI_USD, 8m, 5m)).SetName("StopMarketOrder"),
+                new TestCaseData(new NonUpdateableStopLimitOrderTestParameters(SUSHI_USD, 8m, 5m)).SetName("StopLimitOrder")
             };
         }
 
@@ -118,36 +110,6 @@ namespace QuantConnect.FTXBrokerage.Tests
         public override void LongFromShort(OrderTestParameters parameters)
         {
             base.LongFromShort(parameters);
-        }
-
-        protected override void ModifyOrderUntilFilled(Order order, OrderTestParameters parameters, double secondsTimeout = 90)
-        {
-            Assert.Pass("Order update not supported. Please cancel and re-create.");
-        }
-
-        [Test]
-        public override void GetAccountHoldings()
-        {
-            Assert.IsEmpty(Brokerage.GetAccountHoldings());
-        }
-
-        [Test]
-        public void GetAccountHoldingsClearCache()
-        {
-            var brokerage = CreateBrokerage(
-                Mock.Of<IOrderProvider>(),
-                new SecurityProvider(),
-                new LiveNodePacket
-                {
-                    BrokerageData = new Dictionary<string, string>
-                    {
-                        { "live-holdings", "[{\"AveragePrice\": 5,\"Quantity\": 33,\"Symbol\": {\"Value\": \"GME\",\"ID\": \"GME 2T\",\"Permtick\": \"GME\"},\"MarketPrice\": 10, \"Type\":1 }]" }
-                    }
-                }
-            );
-
-            Assert.IsNotEmpty(brokerage.GetAccountHoldings());
-            Assert.IsEmpty(brokerage.GetAccountHoldings());
         }
     }
 }

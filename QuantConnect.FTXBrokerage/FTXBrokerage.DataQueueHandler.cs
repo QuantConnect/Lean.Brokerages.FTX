@@ -42,7 +42,7 @@ namespace QuantConnect.FTXBrokerage
             {
                 return null;
             }
-
+            
             var enumerator = _aggregator.Add(dataConfig, newDataAvailableHandler);
             SubscriptionManager.Subscribe(dataConfig);
 
@@ -65,24 +65,29 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="job">Job we're subscribing for</param>
         public void SetJob(LiveNodePacket job)
         {
-            var apiKey = job.BrokerageData["ftx-api-key"];
-            var apiSecret = job.BrokerageData["ftx-api-secret"];
-            var accountTier = job.BrokerageData["ftx-account-tier"];
             var aggregator = Composer.Instance.GetExportedValueByTypeName<IDataAggregator>(
                     Config.Get("data-aggregator", "QuantConnect.Lean.Engine.DataFeeds.AggregationManager"));
-            Initialize(
-                apiKey,
-                apiSecret,
-                accountTier,
-                null,
-                null,
-                aggregator,
-                job);
+            SetJobInit(job, aggregator);
 
             if (!IsConnected)
             {
                 Connect();
             }
+        }
+
+        protected virtual void SetJobInit(LiveNodePacket job, IDataAggregator aggregator)
+        {
+            Initialize(
+                job.BrokerageData["ftx-api-key"],
+                job.BrokerageData["ftx-api-secret"],
+                job.BrokerageData["ftx-account-tier"],
+                FTXRestApiClient.FtxRestEndpoint,
+                FTXRestApiClient.FtxWsEndpoint,
+                null,
+                null,
+                aggregator,
+                job,
+                Market.FTX);
         }
 
         #endregion
@@ -103,7 +108,7 @@ namespace QuantConnect.FTXBrokerage
         {
             if (!_webSocketResetEvents.TryGetValue(webSocket, out var onSubscribeEvent))
             {
-                throw new Exception("FTXBrokerage.SubscribeChannel(): could not subscribe to channel");
+                throw new Exception($"{Name}Brokerage.SubscribeChannel(): could not subscribe to channel");
             }
             onSubscribeEvent.Reset();
 
@@ -122,7 +127,7 @@ namespace QuantConnect.FTXBrokerage
 
             if (!onSubscribeEvent.WaitOne(TimeSpan.FromSeconds(30)))
             {
-                Log.Error($"FTXBrokerage.SubscribeChannel(): Could not subscribe to {symbol?.Value}/{channel}.");
+                Log.Error($"{Name}Brokerage.SubscribeChannel(): Could not subscribe to {symbol?.Value}/{channel}.");
                 return false;
             }
 
@@ -133,7 +138,7 @@ namespace QuantConnect.FTXBrokerage
         {
             if (!_webSocketResetEvents.TryGetValue(webSocket, out var onUnsubscribeEvent))
             {
-                throw new Exception("FTXBrokerage.UnsubscribeChannel(): could not unsubscribe from channel");
+                throw new Exception($"{Name}Brokerage.UnsubscribeChannel(): could not unsubscribe from channel");
             }
             onUnsubscribeEvent.Reset();
 
@@ -146,7 +151,7 @@ namespace QuantConnect.FTXBrokerage
 
             if (!onUnsubscribeEvent.WaitOne(TimeSpan.FromSeconds(30)))
             {
-                Log.Error($"FTXBrokerage.Unsubscribe(): Could not unsubscribe from {symbol.Value}/{channel}.");
+                Log.Error($"{Name}Brokerage.Unsubscribe(): Could not unsubscribe from {symbol.Value}/{channel}.");
                 return false;
             }
 
@@ -158,7 +163,7 @@ namespace QuantConnect.FTXBrokerage
             return symbol.Value.IndexOfInvariant("universe", true) == -1
                    && _symbolMapper.IsKnownLeanSymbol(symbol)
                    && symbol.SecurityType == SecurityType.Crypto
-                   && symbol.ID.Market == Market.FTX;
+                   && symbol.ID.Market.Equals(MarketName, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

@@ -34,6 +34,11 @@ namespace QuantConnect.FTXBrokerage
     /// </summary>
     public class FTXRestApiClient : IDisposable
     {
+        public const string FtxRestEndpoint = "https://ftx.com/api";
+        public const string FtxWsEndpoint = "wss://ftx.com/ws/";
+        public const string FtxUsRestEndpoint = "https://ftx.us/api";
+        public const string FtxUsWsEndpoint = "wss://ftx.us/ws/";
+
         private static readonly Dictionary<string, int> Tier2RateLimit = new(StringComparer.OrdinalIgnoreCase)
         {
             { "Tier1", 6 },
@@ -42,21 +47,24 @@ namespace QuantConnect.FTXBrokerage
             { "Tier4", 6 },
             { "Tier5", 6 },
             { "Tier6", 6 },
-            { "VIP1", 10 },
+            { "Tier7", 6 },
+            { "Tier8", 6 },
+            { "Tier9", 6 },
+            { "VIP1", 12 },
             { "VIP2", 30 },
-            { "VIP3", 30 },
-            { "MM1", 10 },
+            { "VIP3", 50 },
+            { "MM1", 12 },
             { "MM2", 30 },
-            { "MM3", 30 }
+            { "MM3", 50 }
         };
 
-        public const string RestApiUrl = "https://ftx.com/api";
-        public const string WsApiUrl = "wss://ftx.com/ws/";
 
         private readonly string _apiKey;
         private readonly string _apiSecret;
         private readonly HMACSHA256 _hashMaker;
         private readonly string _tier;
+        private readonly string _marketName;
+        private readonly string _headerPrefix;
 
         public static readonly JsonSerializerSettings JsonSettings = new()
         {
@@ -83,9 +91,11 @@ namespace QuantConnect.FTXBrokerage
         };
 
         /// <summary>
-        /// Parameterless constructor; can be used to access public endpoints
+        /// Can be used to access public endpoints
         /// </summary>
-        public FTXRestApiClient() : this(null, string.Empty)
+        /// <param name="restUrl">ftx exhcnage rest api endpoint (ftx or ftxus)</param>
+        /// <param name="marketName">Market name matching ove of <see cref="Market"/> values</param>
+        public FTXRestApiClient(string restUrl, string marketName) : this(null, null, restUrl, marketName)
         {
         }
 
@@ -94,8 +104,10 @@ namespace QuantConnect.FTXBrokerage
         /// </summary>
         /// <param name="apiKey">api access key</param>
         /// <param name="apiSecret">api access token</param>
-        public FTXRestApiClient(string apiKey, string apiSecret)
-            : this(new RestClient(RestApiUrl), apiKey, apiSecret)
+        /// <param name="restUrl">ftx exhcnage rest api endpoint (ftx or ftxus)</param>
+        /// <param name="marketName">Market name matching ove of <see cref="Market"/> values</param>
+        public FTXRestApiClient(string apiKey, string apiSecret, string restUrl, string marketName)
+            : this(new RestClient(restUrl), apiKey, apiSecret, marketName)
         {
         }
 
@@ -105,21 +117,25 @@ namespace QuantConnect.FTXBrokerage
         /// <param name="restClient">REST sharp client instance instance</param>
         /// <param name="apiKey">api access key</param>
         /// <param name="apiSecret">api access token</param>
+        /// <param name="marketName">Market name matching ove of <see cref="Market"/> values</param>
         /// <param name="tier">account tier</param>
-        public FTXRestApiClient(IRestClient restClient, string apiKey, string apiSecret, string tier = "Tier1")
+        public FTXRestApiClient(IRestClient restClient, string apiKey, string apiSecret, string marketName, string tier = "Tier1")
         {
             _apiKey = apiKey;
             _apiSecret = apiSecret;
             _restClient = restClient;
 
+            _marketName = marketName;
+            _headerPrefix = marketName.ToUpperInvariant();
+
             if (string.IsNullOrEmpty(tier))
             {
-                throw new ArgumentNullException(nameof(tier), "FTX Tier cannot be null or empty");
+                throw new ArgumentNullException(nameof(tier), $"{_marketName} Tier cannot be null or empty");
             }
 
             if (!Tier2RateLimit.ContainsKey(tier))
             {
-                throw new ArgumentException(nameof(tier), $"FTX Tier passed cannot be recognized. Please use one of the following values: {string.Join(",", Tier2RateLimit.Keys)}");
+                throw new ArgumentException(nameof(tier), $"{_marketName} Tier passed cannot be recognized. Please use one of the following values: {string.Join(",", Tier2RateLimit.Keys)}");
             }
 
             _tier = tier;
@@ -348,9 +364,9 @@ namespace QuantConnect.FTXBrokerage
 
             request.AddHeaders(new List<KeyValuePair<string, string>>
             {
-                new ("FTX-KEY", _apiKey),
-                new ("FTX-SIGN", sign),
-                new ("FTX-TS", nonce.ToString())
+                new ($"{_headerPrefix}-KEY", _apiKey),
+                new ($"{_headerPrefix}-SIGN", sign),
+                new ($"{_headerPrefix}-TS", nonce.ToString())
             });
 
             return request;

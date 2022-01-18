@@ -20,21 +20,21 @@ using QuantConnect.Util;
 namespace QuantConnect.FTXBrokerage.Tests
 {
     [TestFixture]
-    public class FTXBrokerageAdditionalTests
+    public class FTXUSBrokerageAdditionalTests
     {
         [Test]
         public void ParameterlessConstructorComposerUsage()
         {
-            var brokerage = Composer.Instance.GetExportedValueByTypeName<IDataQueueHandler>("FTXBrokerage");
+            var brokerage = Composer.Instance.GetExportedValueByTypeName<IDataQueueHandler>("FTXUSBrokerage");
             Assert.IsNotNull(brokerage);
         }
 
         [Test]
         public void ParameterlessConstructorForBrokerage()
         {
-            var brokerage = Composer.Instance.GetExportedValueByTypeName<IBrokerage>("FTXBrokerage");
+            var brokerage = Composer.Instance.GetExportedValueByTypeName<IBrokerage>("FTXUSBrokerage");
             Assert.IsNotNull(brokerage);
-            Assert.AreEqual(Market.FTX.ToUpperInvariant(), brokerage.Name);
+            Assert.AreEqual(Market.FTXUS.ToUpperInvariant(), brokerage.Name);
         }
     }
 }
