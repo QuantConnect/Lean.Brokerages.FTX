@@ -25,13 +25,15 @@ using QuantConnect.Securities;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace QuantConnect.FTXBrokerage
 {
     public partial class FTXBrokerage
     {
         private readonly ConcurrentDictionary<IWebSocket, ManualResetEvent> _webSocketResetEvents = new();
-        private ManualResetEvent _authResetEvent;
+        private readonly ManualResetEvent _invalidCredentials = new(false);
+        private readonly ManualResetEvent _websocketInitialized = new(false);
         private readonly ConcurrentDictionary<Symbol, DefaultOrderBook> _orderBooks = new();
         private readonly ConcurrentDictionary<int, decimal> _fills = new();
 
@@ -43,18 +45,47 @@ namespace QuantConnect.FTXBrokerage
         /// <summary>
         /// Subscribes to the authenticated channels (using an single streaming channel)
         /// </summary>
-        private void Authenticate()
+        private void InitializeWebSocket()
         {
             if (string.IsNullOrEmpty(ApiKey) || string.IsNullOrEmpty(ApiSecret))
-                return;
-
-            WebSocket.Send(JsonConvert.SerializeObject(new
             {
-                op = "login",
-                args = _restApiClient.GenerateAuthPayloadForWebSocketApi()
-            }));
+                _websocketInitialized.Set();
+                return;
+            }
 
-            Log.Trace($"{Name}Brokerage.Auth(): Sent authentication request.");
+            _websocketInitialized.Reset();
+            _invalidCredentials.Reset();
+            // launch a task so we don't block websocket and can send and receive
+            Task.Factory.StartNew(() =>
+            {
+                WebSocket.Send(JsonConvert.SerializeObject(new
+                {
+                    op = "login",
+                    args = _restApiClient.GenerateAuthPayloadForWebSocketApi()
+                }));
+
+                Log.Trace($"{Name}Brokerage.Auth(): Sent authentication request.");
+                // allow ftx some time to comeback with any error
+                if (_invalidCredentials.WaitOne(TimeSpan.FromSeconds(10)))
+                {
+                    _isAuthenticated = false;
+                    OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, "1", "Invalid credentials"));
+                    return;
+                }
+
+                _isAuthenticated = true;
+                _isAuthenticated &= SubscribeChannel(WebSocket, "fills");
+                _isAuthenticated &= SubscribeChannel(WebSocket, "orders");
+
+                if (!_isAuthenticated)
+                {
+                    OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, "2", "Failed to subscribe to channels"));
+                }
+                else
+                {
+                    _websocketInitialized.Set();
+                }
+            });
         }
 
         private void OnUserDataImpl(WebSocketMessage webSocketMessage)
@@ -65,10 +96,15 @@ namespace QuantConnect.FTXBrokerage
                 {
                     case "error":
                         {
-                            // expect this error message as confirmation that subscribed to private channel
-                            if (payload["msg"]?.ToObject<string>() == "Already logged in")
+                            var message = payload["msg"]?.ToObject<string>();
+                            if (!string.IsNullOrEmpty(message))
                             {
-                                _authResetEvent?.Set();
+                                Log.Error($"{Name}Brokerage.OnUserDataImpl(): {message}");
+                            }
+
+                            if (message?.Equals("Invalid login credentials", StringComparison.InvariantCultureIgnoreCase) == true)
+                            {
+                                _invalidCredentials?.Set();
                             }
 
                             return;

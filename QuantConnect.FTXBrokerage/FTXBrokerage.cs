@@ -458,24 +458,16 @@ namespace QuantConnect.FTXBrokerage
         public override void Connect()
         {
             if (IsConnected)
+            {
                 return;
+            }
 
             base.Connect();
-            _authResetEvent = new ManualResetEvent(false);
 
-            // ftx doesn't send any response if "login" is succeded
-            // here we try again and expect response {"type": "error", "code": 400, "msg": "Already logged in"}
-            // to be sure that authenticated successfully
-            Authenticate();
-
-            if (!_authResetEvent.WaitOne(TimeSpan.FromSeconds(30)))
+            if (!_websocketInitialized.WaitOne(TimeSpan.FromSeconds(60)))
             {
                 throw new TimeoutException("Websockets connection timeout.");
             }
-
-            _isAuthenticated = true;
-            _isAuthenticated &= SubscribeChannel(WebSocket, "fills");
-            _isAuthenticated &= SubscribeChannel(WebSocket, "orders");
         }
 
         /// <summary>
@@ -617,8 +609,8 @@ namespace QuantConnect.FTXBrokerage
 
             WebSocket.Open += (s, e) =>
             {
-                Authenticate();
                 _keepAliveTimer.Start();
+                InitializeWebSocket();
             };
             WebSocket.Closed += (s, e) => { _keepAliveTimer.Stop(); };
 
@@ -661,7 +653,6 @@ namespace QuantConnect.FTXBrokerage
                 onSubscribeEvent.DisposeSafely();
             }
 
-            _authResetEvent?.DisposeSafely();
             _keepAliveTimer?.DisposeSafely();
             _restApiClient?.DisposeSafely();
         }
