@@ -65,7 +65,7 @@ namespace QuantConnect.FTXBrokerage
         public void SetJob(LiveNodePacket job)
         {
             var aggregator = Composer.Instance.GetExportedValueByTypeName<IDataAggregator>(
-                    Config.Get("data-aggregator", "QuantConnect.Lean.Engine.DataFeeds.AggregationManager"));
+                    Config.Get("data-aggregator", "QuantConnect.Lean.Engine.DataFeeds.AggregationManager"), forceTypeNameOnExisting: false);
             SetJobInit(job, aggregator);
 
             if (!IsConnected)
