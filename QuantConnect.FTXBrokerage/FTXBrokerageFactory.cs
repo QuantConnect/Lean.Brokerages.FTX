@@ -83,7 +83,7 @@ namespace QuantConnect.FTXBrokerage
                 accountTier,
                 algorithm,
                 Composer.Instance.GetExportedValueByTypeName<IDataAggregator>(
-                    Config.Get("data-aggregator", "QuantConnect.Lean.Engine.DataFeeds.AggregationManager")),
+                    Config.Get("data-aggregator", "QuantConnect.Lean.Engine.DataFeeds.AggregationManager"), forceTypeNameOnExisting: false),
                 job);
             Composer.Instance.AddPart<IDataQueueHandler>(brokerage);
 
