@@ -665,6 +665,7 @@ namespace QuantConnect.FTXBrokerage
 
             _keepAliveTimer?.DisposeSafely();
             _restApiClient?.DisposeSafely();
+            SubscriptionManager.DisposeSafely();
         }
 
         private class ModulesReadLicenseRead : Api.RestResponse
