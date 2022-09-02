@@ -22,8 +22,6 @@ This repository hosts the FTX and FTXUS Brokerage Plugin Integration with the Qu
 
 [FTX](https://ftx.com/) was founded by Sam Bankman-Fried in 2017 with the goal to "develop a platform robust enough for professional trading firms and intuitive enough for first-time users". FTX provides access to trading Crypto, tokenized Equities, and Bitcoin Options for clients outside of the [restricted locations](https://help.ftx.com/hc/en-us/articles/360042412652-Location-Restrictions-) with no minimum deposit. FTX also provides a platform-native FTT token, an NFT marketplace, and margin borrowing services.
 
-![deploy-ftx](https://user-images.githubusercontent.com/38889814/188245340-aeeb0e6c-f981-4679-878a-20d249dbf922.gif)
-
 For more information about the FTX brokerage, see the [QuantConnect-FTX Integration Page](https://www.quantconnect.com/docs/v2/our-platform/live-trading/brokerages/ftx).
 
 ## Using the Brokerage Plugin
@@ -32,6 +30,8 @@ For more information about the FTX brokerage, see the [QuantConnect-FTX Integrat
 
   You can deploy using a visual interface in the QuantConnect Cloud. For more information see the [QuantConnect-FTX Integration Page](https://www.quantconnect.com/brokerages/ftx).
 
+ ![deploy-ftx](https://user-images.githubusercontent.com/38889814/188245340-aeeb0e6c-f981-4679-878a-20d249dbf922.gif)
+ 
   In the QuantConnect Cloud Platform you can harness the QuantConnect Live Data Feed. For most users this is substantially cheaper and easier than self-hosting.
   
 ### Deploying FTX with LEAN CLI
