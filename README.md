@@ -14,9 +14,9 @@ This repository hosts the FTX and FTXUS Brokerage Plugin Integration with the Qu
 
 <p align="center">
 <picture >
-  <source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/">
-  <source media="(prefers-color-scheme: light)" srcset="https://user-images.githubusercontent.com/">
-  <img alt="introduction" width="40%">
+ <source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/79997186/188238558-83ea0d18-0d81-43e1-9b2b-0ca80f7df6f0.png">
+ <source media="(prefers-color-scheme: light)" srcset="https://user-images.githubusercontent.com/79997186/188238550-061abf06-c153-4a1c-af5f-b6dd03ab6315.png">
+ <img alt="FTX" width="20%">
 </picture>
 <p>
 
