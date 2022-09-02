@@ -22,6 +22,8 @@ This repository hosts the FTX and FTXUS Brokerage Plugin Integration with the Qu
 
 [FTX](https://ftx.com/) was founded by Sam Bankman-Fried in 2017 with the goal to "develop a platform robust enough for professional trading firms and intuitive enough for first-time users". FTX provides access to trading Crypto, tokenized Equities, and Bitcoin Options for clients outside of the [restricted locations](https://help.ftx.com/hc/en-us/articles/360042412652-Location-Restrictions-) with no minimum deposit. FTX also provides a platform-native FTT token, an NFT marketplace, and margin borrowing services.
 
+For more information about the FTX brokerage, see the [QuantConnect-FTX Integration Page](https://www.quantconnect.com/docs/v2/our-platform/live-trading/brokerages/ftx).
+
 ## Using the Brokerage Plugin
   
 ### Deploying FTX with VSCode User Interace
@@ -115,9 +117,9 @@ Follow these steps to start local live trading with the FTX brokerage:
         To enter multiple options, separate them with comma:
     ```
 
-7. View the result in the `<projectName>`/live/`<timestamp>` directory. Results are stored in real-time in JSON format. You can save results to a different directory by providing the --output `<path>` option in step 2.
+7. View the result in the `<projectName>/live/<timestamp>` directory. Results are stored in real-time in JSON format. You can save results to a different directory by providing the `--output <path>` option in step 2.
 
-If you already have a live environment configured in your [Lean configuration file](https://www.quantconnect.com/docs/v2/lean-cli/initialization/configuration#03-Lean-Configuration), you can skip the interactive wizard by providing the --environment `<value>` option in step 2. The value of this option must be the name of an environment which has live-mode set to true.
+If you already have a live environment configured in your [Lean configuration file](https://www.quantconnect.com/docs/v2/lean-cli/initialization/configuration#03-Lean-Configuration), you can skip the interactive wizard by providing the `--environment <value>` option in step 2. The value of this option must be the name of an environment which has `live-mode` set to true.
 
 ## Account Types
 
